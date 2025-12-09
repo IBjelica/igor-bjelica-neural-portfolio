@@ -1,11 +1,16 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useEffect } from "react";
 
 const Index = () => {
+  useEffect(() => {
+    // Redirect to the static portfolio
+    window.location.href = "/index.html";
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="flex min-h-screen items-center justify-center" style={{ background: '#050509' }}>
       <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-gray-400">Loading portfolio...</p>
       </div>
     </div>
   );
