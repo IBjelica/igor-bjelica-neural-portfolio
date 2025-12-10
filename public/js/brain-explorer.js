@@ -3,30 +3,43 @@
  * For Igor Bjelica's Portfolio
  */
 
+import * as THREE from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+
 (function () {
-  'use strict';
+  "use strict";
 
   // --- DOM Elements ---
-  const root = document.getElementById('brain-root');
-  const canvasContainer = document.getElementById('brain-canvas-container');
-  const loadingOverlay = document.getElementById('brain-loading');
-  
-  const infoTitle = document.getElementById('brain-info-title');
-  const infoSubtitle = document.getElementById('brain-info-subtitle');
-  const infoBody = document.getElementById('brain-info-body');
-  const infoTags = document.getElementById('brain-info-tags');
-  const infoStatus = document.getElementById('brain-info-status');
-  
-  const btnReset = document.getElementById('btn-reset');
-  const btnToggleAnnotations = document.getElementById('btn-toggle-annotations');
+  const root = document.getElementById("brain-root");
+  const canvasContainer = document.getElementById("brain-canvas-container");
+  const loadingOverlay = document.getElementById("brain-loading");
+
+  const infoTitle = document.getElementById("brain-info-title");
+  const infoSubtitle = document.getElementById("brain-info-subtitle");
+  const infoBody = document.getElementById("brain-info-body");
+  const infoTags = document.getElementById("brain-info-tags");
+  const infoStatus = document.getElementById("brain-info-status");
+
+  const btnReset = document.getElementById("btn-reset");
+  const btnToggleAnnotations = document.getElementById(
+    "btn-toggle-annotations"
+  );
 
   // --- Scene Setup ---
   const scene = new THREE.Scene();
-  
+
   // Create gradient background
-  const bgColor1 = new THREE.Color(0x050509);
-  const bgColor2 = new THREE.Color(0x0D0F13);
-  scene.background = bgColor1;
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 512;
+  const ctx = canvas.getContext("2d");
+  const gradient = ctx.createLinearGradient(0, 0, 0, 512);
+  gradient.addColorStop(0, "#0D0F13"); // Dark blue-gray
+  gradient.addColorStop(1, "#2a1b3d"); // Dark purple
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, 1, 512);
+  scene.background = new THREE.CanvasTexture(canvas);
 
   // Camera
   const camera = new THREE.PerspectiveCamera(
@@ -38,19 +51,19 @@
   camera.position.set(0, 1.0, 3.5);
 
   // Renderer
-  const renderer = new THREE.WebGLRenderer({ 
+  const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
-    powerPreference: 'high-performance'
+    powerPreference: "high-performance",
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.2;
   canvasContainer.appendChild(renderer.domElement);
 
-  // Controls
+  // Controls (global OrbitControls from THREE namespace)
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
@@ -69,7 +82,7 @@
   scene.add(ambientLight);
 
   // Hemisphere
-  const hemiLight = new THREE.HemisphereLight(0x4A90E2, 0x8F70FF, 0.6);
+  const hemiLight = new THREE.HemisphereLight(0x4a90e2, 0x8f70ff, 0.6);
   scene.add(hemiLight);
 
   // Key light
@@ -78,12 +91,12 @@
   scene.add(keyLight);
 
   // Fill light
-  const fillLight = new THREE.DirectionalLight(0x4A90E2, 0.4);
+  const fillLight = new THREE.DirectionalLight(0x4a90e2, 0.4);
   fillLight.position.set(-3, 2, -2);
   scene.add(fillLight);
 
   // Rim light
-  const rimLight = new THREE.DirectionalLight(0x8F70FF, 0.3);
+  const rimLight = new THREE.DirectionalLight(0x8f70ff, 0.3);
   rimLight.position.set(0, -2, -3);
   scene.add(rimLight);
 
@@ -98,14 +111,17 @@
     particlePositions[i + 2] = (Math.random() - 0.5) * 20;
   }
 
-  particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+  particleGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(particlePositions, 3)
+  );
 
   const particleMaterial = new THREE.PointsMaterial({
-    color: 0x4A90E2,
+    color: 0x4a90e2,
     size: 0.02,
     transparent: true,
     opacity: 0.5,
-    blending: THREE.AdditiveBlending
+    blending: THREE.AdditiveBlending,
   });
 
   const particles = new THREE.Points(particleGeometry, particleMaterial);
@@ -114,40 +130,40 @@
   // --- Brain Region Configuration ---
   const REGION_CONFIG = {
     Frontal_Lobe: {
-      displayName: 'Frontal Lobe',
-      role: 'Executive functions, planning, voluntary movement, and problem-solving abilities.',
-      tags: 'Cognition · Planning · Motor control'
+      displayName: "Frontal Lobe",
+      role: "Executive functions, planning, voluntary movement, and problem-solving abilities.",
+      tags: "Cognition · Planning · Motor control",
     },
     Parietal_Lobe: {
-      displayName: 'Parietal Lobe',
-      role: 'Sensory integration, spatial awareness, and processing touch, temperature, and pain.',
-      tags: 'Touch · Spatial · Attention'
+      displayName: "Parietal Lobe",
+      role: "Sensory integration, spatial awareness, and processing touch, temperature, and pain.",
+      tags: "Touch · Spatial · Attention",
     },
     Temporal_Lobe: {
-      displayName: 'Temporal Lobe',
-      role: 'Hearing, language comprehension, and memory formation.',
-      tags: 'Auditory · Memory · Language'
+      displayName: "Temporal Lobe",
+      role: "Hearing, language comprehension, and memory formation.",
+      tags: "Auditory · Memory · Language",
     },
     Occipital_Lobe: {
-      displayName: 'Occipital Lobe',
-      role: 'Primary visual processing and interpretation of visual information.',
-      tags: 'Vision · Visual cortex'
+      displayName: "Occipital Lobe",
+      role: "Primary visual processing and interpretation of visual information.",
+      tags: "Vision · Visual cortex",
     },
     Cerebellum: {
-      displayName: 'Cerebellum',
-      role: 'Balance, coordination, fine motor control, and motor learning.',
-      tags: 'Coordination · Balance'
+      displayName: "Cerebellum",
+      role: "Balance, coordination, fine motor control, and motor learning.",
+      tags: "Coordination · Balance",
     },
     Brain_Stem: {
-      displayName: 'Brain Stem',
-      role: 'Controls vital functions like breathing, heart rate, and consciousness.',
-      tags: 'Vital functions · Autonomic'
+      displayName: "Brain Stem",
+      role: "Controls vital functions like breathing, heart rate, and consciousness.",
+      tags: "Vital functions · Autonomic",
     },
     Limbic_System: {
-      displayName: 'Limbic System',
-      role: 'Emotional processing, behavior, and long-term memory.',
-      tags: 'Emotions · Memory · Behavior'
-    }
+      displayName: "Limbic System",
+      role: "Emotional processing, behavior, and long-term memory.",
+      tags: "Emotions · Memory · Behavior",
+    },
   };
 
   // --- State ---
@@ -162,25 +178,25 @@
 
   // --- Analytics ---
   window.dataLayer = window.dataLayer || [];
-  
+
   function track(eventName, payload = {}) {
     window.dataLayer.push({
       event: eventName,
       timestamp: Date.now(),
-      ...payload
+      ...payload,
     });
   }
 
   // --- Load Brain Model ---
   const loader = new THREE.GLTFLoader();
   const loadStartTime = performance.now();
-  const modelPath = 'Illuminated_1209010312_texture.glb';
+  const modelPath = "Illuminated_1209010312_texture.glb";
 
   loader.load(
     modelPath,
     (gltf) => {
       brainRoot = gltf.scene;
-      
+
       // Process all meshes
       brainRoot.traverse((obj) => {
         if (obj.isMesh) {
@@ -196,8 +212,12 @@
           obj.receiveShadow = false;
 
           // Check if this is a known region
-          const regionKey = Object.keys(REGION_CONFIG).find(key => 
-            obj.name.includes(key) || obj.name.toLowerCase().includes(key.toLowerCase().replace('_', ''))
+          const regionKey = Object.keys(REGION_CONFIG).find(
+            (key) =>
+              obj.name.includes(key) ||
+              obj.name
+                .toLowerCase()
+                .includes(key.toLowerCase().replace("_", ""))
           );
 
           if (regionKey) {
@@ -216,10 +236,10 @@
       const box = new THREE.Box3().setFromObject(brainRoot);
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
-      
+
       const maxDim = Math.max(size.x, size.y, size.z);
       const scale = 2 / maxDim;
-      
+
       brainRoot.scale.multiplyScalar(scale);
       brainRoot.position.sub(center.multiplyScalar(scale));
       brainRoot.position.y += 0.2;
@@ -228,31 +248,37 @@
 
       // Hide loading overlay
       const loadTime = performance.now() - loadStartTime;
-      loadingOverlay.style.opacity = '0';
+      loadingOverlay.style.opacity = "0";
       setTimeout(() => {
-        loadingOverlay.style.display = 'none';
+        loadingOverlay.style.display = "none";
       }, 500);
 
       // Update UI
-      infoTitle.textContent = 'Interactive Brain Explorer';
-      infoSubtitle.textContent = 'Brain Explorer';
-      infoBody.textContent = 'Click on different regions of the brain to explore their functions. Drag to rotate, scroll to zoom.';
-      infoTags.textContent = 'NO REGION SELECTED';
-      infoStatus.textContent = 'Ready';
+      infoTitle.textContent = "Interactive Brain Explorer";
+      infoSubtitle.textContent = "Brain Explorer";
+      infoBody.textContent =
+        "Click on different regions of the brain to explore their functions. Drag to rotate, scroll to zoom.";
+      infoTags.textContent = "NO REGION SELECTED";
+      infoStatus.textContent = "Ready";
 
-      track('brain_model_loaded', { loadTimeMs: Math.round(loadTime) });
+      track("brain_model_loaded", { loadTimeMs: Math.round(loadTime) });
     },
     (progress) => {
       if (progress.total > 0) {
         const percent = Math.round((progress.loaded / progress.total) * 100);
-        loadingOverlay.querySelector('span').textContent = `Loading 3D Brain (${percent}%)`;
+        loadingOverlay.querySelector(
+          "span"
+        ).textContent = `Loading 3D Brain (${percent}%)`;
       }
     },
     (error) => {
-      console.error('Error loading brain model:', error);
-      loadingOverlay.querySelector('span').textContent = 'Failed to load brain model';
-      infoStatus.textContent = 'Error';
-      track('brain_model_load_error', { message: error.message || 'Unknown error' });
+      console.error("Error loading brain model:", error);
+      loadingOverlay.querySelector("span").textContent =
+        "Failed to load brain model";
+      infoStatus.textContent = "Error";
+      track("brain_model_load_error", {
+        message: error.message || "Unknown error",
+      });
     }
   );
 
@@ -270,7 +296,7 @@
           if (isActive && annotationsVisible) {
             obj.userData.highlighted = true;
             obj.material.color = base.clone().offsetHSL(0.05, 0.3, 0.15);
-            obj.material.emissive = new THREE.Color(0x4A90E2);
+            obj.material.emissive = new THREE.Color(0x4a90e2);
             obj.material.emissiveIntensity = 0.8;
           } else if (regionName && !isActive && annotationsVisible) {
             // Dim other regions
@@ -291,22 +317,23 @@
     if (regionName && REGION_CONFIG[regionName]) {
       const cfg = REGION_CONFIG[regionName];
       infoTitle.textContent = cfg.displayName;
-      infoSubtitle.textContent = 'Brain Explorer · Region';
+      infoSubtitle.textContent = "Brain Explorer · Region";
       infoBody.textContent = cfg.role;
       infoTags.textContent = cfg.tags;
-      infoStatus.textContent = 'Region selected';
+      infoStatus.textContent = "Region selected";
     } else {
-      infoTitle.textContent = 'Interactive Brain Explorer';
-      infoSubtitle.textContent = 'Brain Explorer';
-      infoBody.textContent = 'Click on different regions of the brain to explore their functions. Drag to rotate, scroll to zoom.';
-      infoTags.textContent = 'NO REGION SELECTED';
-      infoStatus.textContent = 'Ready';
+      infoTitle.textContent = "Interactive Brain Explorer";
+      infoSubtitle.textContent = "Brain Explorer";
+      infoBody.textContent =
+        "Click on different regions of the brain to explore their functions. Drag to rotate, scroll to zoom.";
+      infoTags.textContent = "NO REGION SELECTED";
+      infoStatus.textContent = "Ready";
     }
   }
 
   function setAnnotationsVisible(visible) {
     annotationsVisible = visible;
-    
+
     if (brainRoot) {
       brainRoot.traverse((obj) => {
         if (obj.isMesh) {
@@ -322,8 +349,10 @@
       });
     }
 
-    infoStatus.textContent = visible ? 'Annotations visible' : 'Annotations hidden';
-    track('brain_annotations_toggle', { visible });
+    infoStatus.textContent = visible
+      ? "Annotations visible"
+      : "Annotations hidden";
+    track("brain_annotations_toggle", { visible });
   }
 
   // --- Camera Transitions ---
@@ -340,15 +369,13 @@
 
     function step() {
       if (tween.cancelled) return;
-      
+
       const now = performance.now();
       const tRaw = (now - start) / duration;
       const t = Math.min(Math.max(tRaw, 0), 1);
-      
+
       // Ease in-out cubic
-      const ease = t < 0.5 
-        ? 4 * t * t * t 
-        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
       camera.position.lerpVectors(startPos, targetPos, ease);
       controls.target.lerpVectors(startTarget, targetLookAt, ease);
@@ -378,18 +405,18 @@
     tweenCameraTo(newPos, center, 900);
     highlightRegion(regionName);
 
-    track('brain_focus_region', { region: regionName });
+    track("brain_focus_region", { region: regionName });
   }
 
   function resetView() {
     controls.autoRotate = true;
     const defaultTarget = new THREE.Vector3(0, 0.3, 0);
     const defaultPos = new THREE.Vector3(0, 1.0, 3.5);
-    
+
     tweenCameraTo(defaultPos, defaultTarget, 900);
     highlightRegion(null);
-    
-    track('brain_reset_view');
+
+    track("brain_reset_view");
   }
 
   // --- Pointer Interaction ---
@@ -419,17 +446,23 @@
 
     if (hit) {
       const regionName = hit.object.userData.regionKey;
+      console.log("Clicked region:", regionName, "mesh:", hit.object.name);
+
       focusRegion(regionName);
-      track('brain_region_click', { region: regionName });
+      track("brain_region_click", { region: regionName });
     }
   }
 
-  renderer.domElement.addEventListener('pointerdown', onPointerDown, { passive: true });
-  renderer.domElement.addEventListener('pointerup', onPointerUp, { passive: true });
+  renderer.domElement.addEventListener("pointerdown", onPointerDown, {
+    passive: true,
+  });
+  renderer.domElement.addEventListener("pointerup", onPointerUp, {
+    passive: true,
+  });
 
   // --- Button Events ---
-  btnReset.addEventListener('click', resetView);
-  btnToggleAnnotations.addEventListener('click', () => {
+  btnReset.addEventListener("click", resetView);
+  btnToggleAnnotations.addEventListener("click", () => {
     setAnnotationsVisible(!annotationsVisible);
   });
 
@@ -454,7 +487,7 @@
     camera.updateProjectionMatrix();
     renderer.setSize(w, h);
   }
-  window.addEventListener('resize', onWindowResize);
+  window.addEventListener("resize", onWindowResize);
 
   // --- Public API ---
   window.BrainExplorer = {
@@ -467,8 +500,8 @@
     },
     listRegions() {
       return Object.keys(REGION_CONFIG);
-    }
+    },
   };
 
-  track('brain_viewer_init');
+  track("brain_viewer_init");
 })();
