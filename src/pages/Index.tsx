@@ -11,7 +11,9 @@ import Footer from "../components/Footer";
 const Index = () => {
   useEffect(() => {
     // Mobile menu toggle
-    const mobileMenuBtn = document.querySelector(".mobile-menu-btn") as HTMLButtonElement;
+    const mobileMenuBtn = document.querySelector(
+      ".mobile-menu-btn"
+    ) as HTMLButtonElement;
     const mainNav = document.querySelector(".main-nav") as HTMLElement;
 
     if (mobileMenuBtn && mainNav) {
@@ -63,11 +65,15 @@ const Index = () => {
     window.addEventListener("scroll", handleScroll);
 
     // Contact form handling
-    const contactForm = document.getElementById("contact-form") as HTMLFormElement;
+    const contactForm = document.getElementById(
+      "contact-form"
+    ) as HTMLFormElement;
     if (contactForm) {
       contactForm.addEventListener("submit", function (e) {
         e.preventDefault();
-        const btn = this.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const btn = this.querySelector(
+          'button[type="submit"]'
+        ) as HTMLButtonElement;
         if (btn) {
           btn.textContent = "Message Sent! ✓";
           btn.classList.add("success");
@@ -111,7 +117,7 @@ const Index = () => {
       <BrainExplorer />
       <About />
       <Experience />
-      <Projects />
+      {/* <Projects /> */}
       <Skills />
       <Contact />
       <Footer />

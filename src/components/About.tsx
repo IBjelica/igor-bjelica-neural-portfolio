@@ -12,11 +12,14 @@ const About = () => {
               <span className="logo-text large">IB</span>
             </div>
             <h3 className="about-name">Igor Bjelica</h3>
-            <p className="about-role">Web Developer</p>
+            <p className="about-role">Software Engineer - Web Developer</p>
             <p className="about-bio">
-              Web Developer with more than <strong>7 years of experience</strong> in both custom Web and CMS development.
-              Enthusiastic about debugging and problem-solving complex issues with developing creative Web ideas.
-              I specialize in building performant, accessible, and visually stunning web experiences using modern technologies.
+              Web Developer with more than{" "}
+              <strong>7 years of experience</strong> in both custom Web and CMS
+              development. Enthusiastic about debugging and problem-solving
+              complex issues with developing creative Web ideas. I specialize in
+              building performant, accessible, and visually stunning web
+              experiences using modern technologies.
             </p>
             <div className="about-details">
               <div className="detail-item">
@@ -53,8 +56,8 @@ const About = () => {
                 <span className="skill-name">Three.js</span>
               </div>
               <div className="skill-item">
-                <span className="skill-icon">🎮</span>
-                <span className="skill-name">WebGL</span>
+                <span className="skill-icon">💻</span>
+                <span className="skill-name">UI/UX</span>
               </div>
               <div className="skill-item">
                 <span className="skill-icon">🐘</span>

@@ -183,6 +183,9 @@ const BrainExplorer = () => {
     let dragStartX = 0;
     let dragStartY = 0;
     const dragThreshold = 5;
+    let targetSceneY = 0;
+    let targetFov = 45;
+    let lastInteractionTime = 0;
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -260,7 +263,7 @@ const BrainExplorer = () => {
         const size = box.getSize(new THREE.Vector3());
 
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 2 / maxDim;
+        const scale = 1.5 / maxDim;
 
         brainRoot.scale.multiplyScalar(scale);
         brainRoot.position.sub(center.multiplyScalar(scale));
@@ -459,6 +462,7 @@ const BrainExplorer = () => {
     function onPointerDown(event: PointerEvent) {
       userHasInteracted = true;
       controls.autoRotate = false;
+      lastInteractionTime = Date.now();
       dragStartX = event.clientX;
       dragStartY = event.clientY;
     }
@@ -521,10 +525,26 @@ const BrainExplorer = () => {
       particles.rotation.y += 0.0002;
       particles.rotation.x += 0.0001;
 
+      // Smooth scroll animation (only when not interacting)
+      if (Date.now() - lastInteractionTime > 500) {
+        scene.position.y += (targetSceneY - scene.position.y) * 0.2;
+        camera.fov += (targetFov - camera.fov) * 0.2;
+        camera.updateProjectionMatrix();
+      }
+
       controls.update();
       renderer.render(scene, camera);
     }
     animate();
+
+    // --- Scroll Handler ---
+    function onWindowScroll() {
+      const scrollY = window.scrollY;
+      // Set target positions for smooth animation
+      targetSceneY = -scrollY * 0.014;
+      targetFov = 45 + scrollY * 0.1;
+    }
+    window.addEventListener("scroll", onWindowScroll);
 
     // --- Resize Handler ---
     function onWindowResize() {
@@ -554,14 +574,11 @@ const BrainExplorer = () => {
 
     // Cleanup
     return () => {
+      window.removeEventListener("scroll", onWindowScroll);
       window.removeEventListener("resize", onWindowResize);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointerup", onPointerUp);
       if (btnReset) btnReset.removeEventListener("click", resetView);
-      if (btnToggleAnnotations)
-        btnToggleAnnotations.removeEventListener("click", () =>
-          setAnnotationsVisible(!annotationsVisible)
-        );
       renderer.dispose();
       scene.clear();
     };

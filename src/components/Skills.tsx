@@ -22,8 +22,9 @@ const Skills = () => {
             <h4 className="category-title">3D & Graphics</h4>
             <div className="skill-badges">
               <span className="badge accent">Three.js</span>
-              <span className="badge accent">WebGL</span>
+              {/* <span className="badge accent">WebGL</span> */}
               <span className="badge accent">GSAP</span>
+              <span className="badge accent">Framer motion</span>
               <span className="badge accent">Canvas API</span>
             </div>
           </div>
@@ -40,6 +41,7 @@ const Skills = () => {
             <h4 className="category-title">Tools & Practices</h4>
             <div className="skill-badges">
               <span className="badge secondary">Git</span>
+              <span className="badge secondary">UI / UX</span>
               <span className="badge secondary">SEO</span>
               <span className="badge secondary">Debugging</span>
               <span className="badge secondary">Responsive Design</span>
