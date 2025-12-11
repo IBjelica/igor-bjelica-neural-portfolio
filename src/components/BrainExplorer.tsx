@@ -277,7 +277,7 @@ const BrainExplorer = () => {
         if (progress.total > 0 && loadingOverlay) {
           const percent = Math.round((progress.loaded / progress.total) * 100);
           const span = loadingOverlay.querySelector("span");
-          if (span) span.textContent = `Loading 3D Brain (${percent}%)`;
+          if (span) span.textContent = `Loading Igor's Brain (${percent}%)`;
         }
       },
       (error) => {
@@ -434,7 +434,7 @@ const BrainExplorer = () => {
       controls.autoRotate = false;
       highlightRegion(regionName);
 
-      track('brain_focus_region', { region: regionName });
+      track("brain_focus_region", { region: regionName });
     }
 
     function resetView() {
