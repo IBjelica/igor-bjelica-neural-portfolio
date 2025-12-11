@@ -431,20 +431,10 @@ const BrainExplorer = () => {
     function focusRegion(regionName: string) {
       if (!brainRoot || !regionMeshes[regionName]) return;
 
-      const mesh = regionMeshes[regionName];
-      const box = new THREE.Box3().setFromObject(mesh);
-      const center = box.getCenter(new THREE.Vector3());
-      const size = box.getSize(new THREE.Vector3()).length();
-      const distance = Math.max(size * 2, 2);
-
-      const dir = new THREE.Vector3(0.5, 0.5, 1).normalize();
-      const newPos = center.clone().add(dir.multiplyScalar(distance));
-
       controls.autoRotate = false;
-      tweenCameraTo(newPos, center, 900);
       highlightRegion(regionName);
 
-      track("brain_focus_region", { region: regionName });
+      track('brain_focus_region', { region: regionName });
     }
 
     function resetView() {
