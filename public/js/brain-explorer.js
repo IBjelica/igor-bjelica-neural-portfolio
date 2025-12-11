@@ -190,7 +190,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
   // --- Load Brain Model ---
   const loader = new THREE.GLTFLoader();
   const loadStartTime = performance.now();
-  const modelPath = "Illuminated_1209010312_texture.glb";
+  const modelPath = "brain-illuminated.glb";
 
   loader.load(
     modelPath,

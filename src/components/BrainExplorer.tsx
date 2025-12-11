@@ -33,18 +33,6 @@ const BrainExplorer = () => {
     // --- Scene Setup ---
     const scene = new THREE.Scene();
 
-    // Create gradient background
-    const canvas = document.createElement("canvas");
-    canvas.width = 1;
-    canvas.height = 512;
-    const ctx = canvas.getContext("2d");
-    const gradient = ctx!.createLinearGradient(0, 0, 0, 512);
-    gradient.addColorStop(0, "#0D0F13"); // Dark blue-gray
-    gradient.addColorStop(1, "#2a1b3d"); // Dark purple
-    ctx!.fillStyle = gradient;
-    ctx!.fillRect(0, 0, 1, 512);
-    scene.background = new THREE.CanvasTexture(canvas);
-
     // Camera
     const camera = new THREE.PerspectiveCamera(
       45,
@@ -177,6 +165,9 @@ const BrainExplorer = () => {
     let currentRegionName: string | null = null;
     let annotationsVisible = true;
     let userHasInteracted = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    const dragThreshold = 5;
 
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -195,18 +186,19 @@ const BrainExplorer = () => {
     // --- Load Brain Model ---
     const loader = new GLTFLoader();
     const loadStartTime = performance.now();
-    const modelPath = "Illuminated_1209010312_texture.glb";
+    const modelPath = "brain-illuminated.glb";
 
     loader.load(
       modelPath,
       (gltf) => {
         brainRoot = gltf.scene;
 
-        brainRoot.traverse((obj) => {
-          if (obj.isMesh) {
-            console.log("[brain] mesh name:", obj.name);
-          }
-        });
+        // Debug: log all mesh names
+        // brainRoot.traverse((obj) => {
+        //   if (obj.isMesh) {
+        //     console.log("[brain] mesh name:", obj.name);
+        //   }
+        // });
 
         // Process all meshes
         brainRoot.traverse((obj) => {
@@ -470,16 +462,20 @@ const BrainExplorer = () => {
     function onPointerDown(event: PointerEvent) {
       userHasInteracted = true;
       controls.autoRotate = false;
-      console.log("[brain] pointerdown", event.type);
+      dragStartX = event.clientX;
+      dragStartY = event.clientY;
     }
 
     function onPointerUp(event: PointerEvent) {
-      console.log("[brain] pointerup", event.type);
+      if (!brainRoot) return;
 
-      if (!brainRoot) {
-        console.log("[brain] pointerup: brainRoot not ready");
-        return;
+      // Check if dragged beyond threshold
+      const deltaX = Math.abs(event.clientX - dragStartX);
+      const deltaY = Math.abs(event.clientY - dragStartY);
+      if (deltaX > dragThreshold || deltaY > dragThreshold) {
+        return; // Ignore click if dragged
       }
+
       const rect = renderer.domElement.getBoundingClientRect();
       const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -488,14 +484,7 @@ const BrainExplorer = () => {
       raycaster.setFromCamera(pointer, camera);
       const intersects = raycaster.intersectObject(brainRoot, true);
 
-      console.log("[brain] intersects count:", intersects.length);
-
       if (!intersects.length) return;
-
-      console.log(
-        "[brain] intersected objects:",
-        intersects.map((i) => i.object.name)
-      );
 
       // Find first hit with a known region
       const hit = intersects.find((i) => {
@@ -503,17 +492,8 @@ const BrainExplorer = () => {
         return key && REGION_CONFIG[key as keyof typeof REGION_CONFIG];
       });
 
-      console.log(
-        "[brain] hit:",
-        hit && hit.object.name,
-        "regionKey:",
-        hit && hit.object.userData.regionKey
-      );
-
       if (hit) {
         const regionName = (hit.object as any).userData.regionKey;
-        console.log("Clicked region:", regionName, "mesh:", hit.object.name);
-
         focusRegion(regionName);
         track("brain_region_click", { region: regionName });
       }
@@ -631,9 +611,7 @@ const BrainExplorer = () => {
           </button>
         </div>
 
-        <div id="brain-hint">
-          Drag to rotate · Click regions to explore
-        </div>
+        <div id="brain-hint">Drag to rotate · Click regions to explore</div>
       </div>
 
       {/* <div className="hero-overlay">
