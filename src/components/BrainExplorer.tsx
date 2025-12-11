@@ -92,14 +92,30 @@ const BrainExplorer = () => {
     scene.add(rimLight);
 
     // --- Particles Background ---
-    const particleCount = 200;
+    const particleCount = 210;
     const particleGeometry = new THREE.BufferGeometry();
     const particlePositions = new Float32Array(particleCount * 3);
 
-    for (let i = 0; i < particleCount * 3; i += 3) {
-      particlePositions[i] = (Math.random() - 0.5) * 20;
-      particlePositions[i + 1] = (Math.random() - 0.5) * 20;
-      particlePositions[i + 2] = (Math.random() - 0.5) * 20;
+    // Keep particles within a spherical shell so they don't get too close
+    const minRadius = 4; // minimum distance from origin (bigger = visually smaller)
+    const maxRadius = 7; // maximum distance from origin
+
+    for (let i = 0; i < particleCount; i++) {
+      // Random point on a sphere, then scale by random radius in [minRadius, maxRadius]
+      const u = Math.random();
+      const v = Math.random();
+      const theta = 2 * Math.PI * u;
+      const phi = Math.acos(2 * v - 1);
+      const r = minRadius + Math.random() * (maxRadius - minRadius);
+
+      const x = r * Math.sin(phi) * Math.cos(theta);
+      const y = r * Math.sin(phi) * Math.sin(theta);
+      const z = r * Math.cos(phi);
+
+      const idx = i * 3;
+      particlePositions[idx] = x;
+      particlePositions[idx + 1] = y;
+      particlePositions[idx + 2] = z;
     }
 
     particleGeometry.setAttribute(
@@ -109,7 +125,8 @@ const BrainExplorer = () => {
 
     const particleMaterial = new THREE.PointsMaterial({
       color: 0x4a90e2,
-      size: 0.02,
+      size: 0.03, // you can lower this to 0.015 if you still want them smaller
+      sizeAttenuation: true,
       transparent: true,
       opacity: 0.5,
       blending: THREE.AdditiveBlending,
@@ -265,7 +282,7 @@ const BrainExplorer = () => {
         if (infoSubtitle) infoSubtitle.textContent = "Explore Igor's Brain";
         if (infoBody)
           infoBody.textContent =
-            "Click on different regions of the brain to explore their functions. Drag to rotate, scroll to zoom.";
+            "Click on different regions of the brain to explore Igor's functions.";
         if (infoTags) infoTags.textContent = "NO REGION SELECTED";
 
         track("brain_model_loaded", { loadTimeMs: Math.round(loadTime) });
@@ -558,32 +575,34 @@ const BrainExplorer = () => {
           <span>Loading 3D Brain</span>
         </div>
 
-        <div id="brain-info-panel">
-          <div ref={infoSubtitleRef} id="brain-info-subtitle">
-            Brain Explorer
+        <div className="brain-controls-panel">
+          <div id="brain-toolbar" style={{ marginBottom: "16px" }}>
+            <button ref={btnResetRef} className="brain-btn" id="btn-reset">
+              <span className="icon">⟳</span>
+              <span>Reset view</span>
+            </button>
+
+            <div id="brain-hint">Drag to rotate · Click regions to explore</div>
           </div>
-          <div ref={infoTitleRef} id="brain-info-title">
-            Initializing…
-          </div>
-          <div ref={infoBodyRef} id="brain-info-body">
-            Rotate, zoom, and click on different regions of the brain to explore
-            their functions.
-          </div>
-          <div id="brain-info-footer">
-            <div ref={infoTagsRef} id="brain-info-tags">
-              NO REGION SELECTED
+
+          <div id="brain-info-panel">
+            <div ref={infoSubtitleRef} id="brain-info-subtitle">
+              Brain Explorer
+            </div>
+            <div ref={infoTitleRef} id="brain-info-title">
+              Initializing…
+            </div>
+            <div ref={infoBodyRef} id="brain-info-body">
+              Rotate, zoom, and click on different regions of the brain to
+              explore their functions.
+            </div>
+            <div id="brain-info-footer">
+              <div ref={infoTagsRef} id="brain-info-tags">
+                NO REGION SELECTED
+              </div>
             </div>
           </div>
         </div>
-
-        <div id="brain-toolbar">
-          <button ref={btnResetRef} className="brain-btn" id="btn-reset">
-            <span className="icon">⟳</span>
-            <span>Reset view</span>
-          </button>
-        </div>
-
-        <div id="brain-hint">Drag to rotate · Click regions to explore</div>
       </div>
 
       {/* <div className="hero-overlay">
