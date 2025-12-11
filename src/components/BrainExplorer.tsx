@@ -474,7 +474,10 @@ const BrainExplorer = () => {
       raycaster.setFromCamera(pointer, camera);
       const intersects = raycaster.intersectObject(brainRoot, true);
 
-      if (!intersects.length) return;
+      if (!intersects.length) {
+        highlightRegion(null);
+        return;
+      }
 
       // Find first hit with a known region
       const hit = intersects.find((i) => {
