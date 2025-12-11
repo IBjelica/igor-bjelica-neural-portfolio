@@ -11,7 +11,6 @@ const BrainExplorer = () => {
   const infoSubtitleRef = useRef<HTMLDivElement>(null);
   const infoBodyRef = useRef<HTMLDivElement>(null);
   const infoTagsRef = useRef<HTMLDivElement>(null);
-  const infoStatusRef = useRef<HTMLDivElement>(null);
   const btnResetRef = useRef<HTMLButtonElement>(null);
   const btnToggleAnnotationsRef = useRef<HTMLButtonElement>(null);
 
@@ -26,7 +25,6 @@ const BrainExplorer = () => {
     const infoSubtitle = infoSubtitleRef.current;
     const infoBody = infoBodyRef.current;
     const infoTags = infoTagsRef.current;
-    const infoStatus = infoStatusRef.current;
     const btnReset = btnResetRef.current;
     const btnToggleAnnotations = btnToggleAnnotationsRef.current;
 
@@ -263,13 +261,12 @@ const BrainExplorer = () => {
         }
 
         // Update UI
-        if (infoTitle) infoTitle.textContent = "Interactive Brain Explorer";
-        if (infoSubtitle) infoSubtitle.textContent = "Brain Explorer";
+        if (infoTitle) infoTitle.textContent = "";
+        if (infoSubtitle) infoSubtitle.textContent = "Explore Igor's Brain";
         if (infoBody)
           infoBody.textContent =
             "Click on different regions of the brain to explore their functions. Drag to rotate, scroll to zoom.";
         if (infoTags) infoTags.textContent = "NO REGION SELECTED";
-        if (infoStatus) infoStatus.textContent = "Ready";
 
         track("brain_model_loaded", { loadTimeMs: Math.round(loadTime) });
       },
@@ -286,7 +283,6 @@ const BrainExplorer = () => {
           const span = loadingOverlay.querySelector("span");
           if (span) span.textContent = "Failed to load brain model";
         }
-        if (infoStatus) infoStatus.textContent = "Error";
         track("brain_model_load_error", {
           message: (error as any).message || "Unknown error",
         });
@@ -344,18 +340,16 @@ const BrainExplorer = () => {
       ) {
         const cfg = REGION_CONFIG[regionName as keyof typeof REGION_CONFIG];
         if (infoTitle) infoTitle.textContent = cfg.displayName;
-        if (infoSubtitle) infoSubtitle.textContent = "Brain Explorer · Region";
+        if (infoSubtitle) infoSubtitle.textContent = "Explore Igor's Brain";
         if (infoBody) infoBody.textContent = cfg.role;
         if (infoTags) infoTags.textContent = cfg.tags;
-        if (infoStatus) infoStatus.textContent = "Region selected";
       } else {
-        if (infoTitle) infoTitle.textContent = "Interactive Brain Explorer";
+        if (infoTitle) infoTitle.textContent = "";
         if (infoSubtitle) infoSubtitle.textContent = "Brain Explorer";
         if (infoBody)
           infoBody.textContent =
-            "Click on different regions of the brain to explore their functions. Drag to rotate, scroll to zoom.";
+            "Click on different regions of the brain to explore Igor's functions.";
         if (infoTags) infoTags.textContent = "NO REGION SELECTED";
-        if (infoStatus) infoStatus.textContent = "Ready";
       }
     }
 
@@ -383,10 +377,6 @@ const BrainExplorer = () => {
         });
       }
 
-      if (infoStatus)
-        infoStatus.textContent = visible
-          ? "Annotations visible"
-          : "Annotations hidden";
       track("brain_annotations_toggle", { visible });
     }
 
@@ -583,9 +573,6 @@ const BrainExplorer = () => {
             <div ref={infoTagsRef} id="brain-info-tags">
               NO REGION SELECTED
             </div>
-            <div ref={infoStatusRef} id="brain-info-status">
-              Idle
-            </div>
           </div>
         </div>
 
@@ -593,14 +580,6 @@ const BrainExplorer = () => {
           <button ref={btnResetRef} className="brain-btn" id="btn-reset">
             <span className="icon">⟳</span>
             <span>Reset view</span>
-          </button>
-          <button
-            ref={btnToggleAnnotationsRef}
-            className="brain-btn"
-            id="btn-toggle-annotations"
-          >
-            <span className="icon">◎</span>
-            <span>Toggle highlight</span>
           </button>
         </div>
 
