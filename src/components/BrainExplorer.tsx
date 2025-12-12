@@ -139,38 +139,38 @@ const BrainExplorer = () => {
     const REGION_CONFIG = {
       Frontal_Lobe: {
         displayName: "Frontal Lobe",
-        role: "Executive functions, planning, voluntary movement, and problem-solving abilities.",
-        tags: "Cognition · Planning · Motor control",
+        role: "The project manager of my brain - plans code sessions, debugs code and life decisions, and occasionally wonders why the coffee machine broke again.",
+        tags: "Planning · Logic · Problem-Solving",
       },
       Parietal_Lobe: {
         displayName: "Parietal Lobe",
-        role: "Sensory integration, spatial awareness, and processing touch, temperature, and pain.",
-        tags: "Touch · Spatial · Attention",
+        role: "My brain's spatial designer - handles responsive layouts, touch interactions, and that awkward moment when you bump into furniture after coding late.",
+        tags: "Spatial · Touch · UX Design",
       },
       Temporal_Lobe: {
         displayName: "Temporal Lobe",
-        role: "Hearing, language comprehension, and memory formation.",
-        tags: "Auditory · Memory · Language",
+        role: "The storyteller of my mind - remembers all the git commands, understands client requirements, and occasionally mixes up variable names.",
+        tags: "Memory · Language · Audio Processing",
       },
       Occipital_Lobe: {
         displayName: "Occipital Lobe",
-        role: "Primary visual processing and interpretation of visual information.",
-        tags: "Vision · Visual cortex",
+        role: "My brain's art director - processes beautiful UIs, catches visual bugs, and dreams in CSS gradients.",
+        tags: "Vision · Graphics · Visual Design",
       },
       Cerebellum: {
         displayName: "Cerebellum",
-        role: "Balance, coordination, fine motor control, and motor learning.",
-        tags: "Coordination · Balance",
+        role: "The coordination expert - ensures smooth animations, precise mouse movements, and that perfect typing speed during crunch time. Occasionally plays basketball and trips over cables.",
+        tags: "Coordination · Motor Skills · Animation",
       },
       Brain_Stem: {
         displayName: "Brain Stem",
-        role: "Controls vital functions like breathing, heart rate, and consciousness.",
-        tags: "Vital functions · Autonomic",
+        role: "The reliable sysadmin - keeps my heart pumping through deadlines, maintains breathing during presentations and client meetings, and ensures (almost perfectly) I don't fall asleep at my desk.",
+        tags: "Vital Functions · Reliability · Stress Management",
       },
       Limbic_System: {
         displayName: "Limbic System",
-        role: "Emotional processing, behavior, and long-term memory.",
-        tags: "Emotions · Memory · Behavior",
+        role: "My brain's emotional PM - handles team motivation, remembers why I love coding, and occasionally throws tantrums over merge conflicts.",
+        tags: "Emotions · Motivation · Team Dynamics",
       },
     };
 
