@@ -526,7 +526,7 @@ const BrainExplorer = () => {
       particles.rotation.x += 0.0001;
 
       // Smooth scroll animation (only when not interacting)
-      if (Date.now() - lastInteractionTime > 500) {
+      if (Date.now() - lastInteractionTime > 1000) {
         scene.position.y += (targetSceneY - scene.position.y) * 0.2;
         camera.fov += (targetFov - camera.fov) * 0.2;
         camera.updateProjectionMatrix();
