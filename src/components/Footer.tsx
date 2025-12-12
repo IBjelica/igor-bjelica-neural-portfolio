@@ -7,12 +7,12 @@ const Footer = () => {
             <span className="logo-text">IB</span>
           </a>
           <p className="footer-text">
-            © {new Date().getFullYear()} Igor Bjelica. Crafted with passion in Belgrade, Serbia.
+            © {new Date().getFullYear()} Igor Bjelica. Crafted with passion in
+            Belgrade, Serbia.
           </p>
           <div className="footer-links">
             <a href="#about">About</a>
             <a href="#experience">Experience</a>
-            {/* <a href="#projects">Projects</a> */}
             <a href="#skills">Skills</a>
             <a href="#contact">Contact</a>
           </div>
