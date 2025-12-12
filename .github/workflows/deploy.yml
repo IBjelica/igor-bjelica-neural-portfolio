@@ -31,15 +31,16 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: 22
           script: |
+            # Remove all files from domain root
             rm -rf ${{ secrets.DEPLOY_PATH }}/*
             mkdir -p ${{ secrets.DEPLOY_PATH }}
 
-      - name: Upload build files
+      - name: Upload build files to server root
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: 22
-          source: "dist/*"
-          target: ${{ secrets.DEPLOY_PATH }}
+          source: "dist/*"          # Upload contents of dist/
+          target: ${{ secrets.DEPLOY_PATH }}  # Domain root
