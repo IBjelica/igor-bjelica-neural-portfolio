@@ -1,18 +1,29 @@
-name: Deploy to HawkHost
+name: Deploy Vite Project to HawkHost
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Deploy via SSH
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Clean server directory before upload
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -22,14 +33,13 @@ jobs:
           script: |
             rm -rf ${{ secrets.DEPLOY_PATH }}/*
             mkdir -p ${{ secrets.DEPLOY_PATH }}
-            echo "Uploading files..."
 
-      - name: Upload project files
+      - name: Upload build files
         uses: appleboy/scp-action@v1.0.4
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: 22
-          source: "./*"
+          source: "dist/*"
           target: ${{ secrets.DEPLOY_PATH }}
