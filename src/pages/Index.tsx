@@ -35,13 +35,20 @@ const Index = () => {
       });
     }
 
-    // Smooth scroll
+    // Smooth scroll with header offset
     document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
       anchor.addEventListener("click", function (e) {
         e.preventDefault();
         const target = document.querySelector(this.getAttribute("href")!);
         if (target) {
-          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          const header = document.querySelector(".site-header") as HTMLElement;
+          const headerHeight = header ? header.offsetHeight : 0;
+          const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - headerHeight - 20; // 20px extra padding
+
+          window.scrollTo({
+            top: targetPosition,
+            behavior: "smooth"
+          });
         }
       });
     });
