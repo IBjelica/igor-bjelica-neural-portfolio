@@ -43,41 +43,6 @@ const Contact = () => {
               </a>
             </div>
           </div>
-          {/* <form className="contact-form" id="contact-form">
-            <div className="form-group">
-              <label htmlFor="name">Your Name</label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                required
-                placeholder="John Doe"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="email">Your Email</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                required
-                placeholder="john@example.com"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="message">Your Message</label>
-              <textarea
-                id="message"
-                name="message"
-                rows={5}
-                required
-                placeholder="Tell me about your project..."
-              ></textarea>
-            </div>
-            <button type="submit" className="btn btn-primary btn-full">
-              Send Message <span className="arrow">→</span>
-            </button>
-          </form> */}
         </div>
       </div>
     </section>
