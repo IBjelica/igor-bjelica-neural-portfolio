@@ -586,6 +586,9 @@ const BrainExplorer = () => {
 
   return (
     <section id="hero" className="hero-section">
+      <h1 className="sr-only">
+        Igor Bjelica — Web Developer &amp; Creative Technologist
+      </h1>
       <div ref={rootRef} id="brain-root">
         <div ref={canvasContainerRef} id="brain-canvas-container"></div>
         <div ref={loadingOverlayRef} id="brain-loading">
