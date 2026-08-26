@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 
 const BrainExplorer = () => {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -220,8 +221,9 @@ const BrainExplorer = () => {
 
     // --- Load Brain Model ---
     const loader = new GLTFLoader();
+    loader.setMeshoptDecoder(MeshoptDecoder);
     const loadStartTime = performance.now();
-    const modelPath = "brain-illuminated.glb";
+    const modelPath = "/brain-illuminated.glb";
 
     loader.load(
       modelPath,
