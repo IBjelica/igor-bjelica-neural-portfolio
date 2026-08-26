@@ -12,7 +12,6 @@ const BrainExplorer = () => {
   const infoBodyRef = useRef<HTMLDivElement>(null);
   const infoTagsRef = useRef<HTMLDivElement>(null);
   const btnResetRef = useRef<HTMLButtonElement>(null);
-  const btnToggleAnnotationsRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!rootRef.current || !canvasContainerRef.current) return;
@@ -26,7 +25,6 @@ const BrainExplorer = () => {
     const infoBody = infoBodyRef.current;
     const infoTags = infoTagsRef.current;
     const btnReset = btnResetRef.current;
-    const btnToggleAnnotations = btnToggleAnnotationsRef.current;
 
     // --- Scene Setup ---
     const scene = new THREE.Scene();
@@ -187,6 +185,25 @@ const BrainExplorer = () => {
     let targetFov = 45;
     let lastInteractionTime = 0;
 
+    let disposed = false;
+    let rafId = 0;
+
+    // renderer.dispose() releases the WebGL context but not the GPU memory
+    // held by geometries, materials and their textures — those must each be
+    // disposed explicitly.
+    function disposeMaterial(material: THREE.Material) {
+      Object.values(material).forEach((value) => {
+        if (value instanceof THREE.Texture) {
+          // The cast is required, not cosmetic: `Object.values` yields
+          // `unknown`, and with `strictNullChecks: false` TypeScript does not
+          // narrow `unknown` through `instanceof`. The runtime guard above is
+          // what makes it safe.
+          (value as THREE.Texture).dispose();
+        }
+      });
+      material.dispose();
+    }
+
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
 
@@ -209,6 +226,11 @@ const BrainExplorer = () => {
     loader.load(
       modelPath,
       (gltf) => {
+        // The component may have unmounted while the model was downloading.
+        // Nothing has been uploaded to the GPU yet — three uploads lazily on
+        // first render — so returning early is enough to let it be collected.
+        if (disposed) return;
+
         brainRoot = gltf.scene;
 
         // Debug: log all mesh names
@@ -291,6 +313,7 @@ const BrainExplorer = () => {
         track("brain_model_loaded", { loadTimeMs: Math.round(loadTime) });
       },
       (progress) => {
+        if (disposed) return;
         if (progress.total > 0 && loadingOverlay) {
           const percent = Math.round((progress.loaded / progress.total) * 100);
           const span = loadingOverlay.querySelector("span");
@@ -298,6 +321,7 @@ const BrainExplorer = () => {
         }
       },
       (error) => {
+        if (disposed) return;
         console.error("Error loading brain model:", error);
         if (loadingOverlay) {
           const span = loadingOverlay.querySelector("span");
@@ -512,14 +536,10 @@ const BrainExplorer = () => {
 
     // --- Button Events ---
     if (btnReset) btnReset.addEventListener("click", resetView);
-    if (btnToggleAnnotations)
-      btnToggleAnnotations.addEventListener("click", () => {
-        setAnnotationsVisible(!annotationsVisible);
-      });
 
     // --- Animation Loop ---
     function animate() {
-      requestAnimationFrame(animate);
+      rafId = requestAnimationFrame(animate);
 
       // Rotate particles slowly
       particles.rotation.y += 0.0002;
@@ -574,13 +594,44 @@ const BrainExplorer = () => {
 
     // Cleanup
     return () => {
+      disposed = true;
+
+      // Stop the render loop before anything it touches is disposed.
+      cancelAnimationFrame(rafId);
+      if (activeTween) activeTween.cancelled = true;
+
       window.removeEventListener("scroll", onWindowScroll);
       window.removeEventListener("resize", onWindowResize);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointerup", onPointerUp);
       if (btnReset) btnReset.removeEventListener("click", resetView);
-      renderer.dispose();
+
+      // OrbitControls keeps its own pointer/wheel listeners on the canvas.
+      controls.dispose();
+
+      // Free GPU memory held by the loaded model.
+      scene.traverse((obj) => {
+        if (obj instanceof THREE.Mesh) {
+          obj.geometry?.dispose();
+          const materials = Array.isArray(obj.material)
+            ? obj.material
+            : [obj.material];
+          materials.forEach(disposeMaterial);
+        }
+      });
+
+      // The particle system is THREE.Points, not a Mesh, so the traverse
+      // above skips it.
+      particleGeometry.dispose();
+      particleMaterial.dispose();
+
       scene.clear();
+
+      renderer.dispose();
+      renderer.forceContextLoss();
+      renderer.domElement.remove();
+
+      delete (window as any).BrainExplorer;
     };
   }, []);
 
