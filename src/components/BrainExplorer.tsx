@@ -3,6 +3,10 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/examples/jsm/postprocessing/OutputPass.js";
 
 const BrainExplorer = () => {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -30,6 +34,23 @@ const BrainExplorer = () => {
     // --- Scene Setup ---
     const scene = new THREE.Scene();
 
+    // --- Visual tuning ---
+    // Every knob for the hero's look lives here so it can be tuned in one place.
+    const VISUAL = {
+      exposure: 1.1,
+      envIntensity: 1.0,
+      roughness: 0.35,
+      metalness: 0.25,
+      bloom: { strength: 0.85, radius: 0.5, threshold: 0.75 },
+      baseEmissive: 0x14284d,
+      baseEmissiveIntensity: 0.45,
+      activeEmissive: 0x4a90e2,
+      activeEmissiveIntensity: 1.6,
+      dimEmissiveIntensity: 0.12,
+      particleCount: 700,
+      particleSize: 0.045,
+    };
+
     // Camera
     const camera = new THREE.PerspectiveCamera(
       45,
@@ -49,7 +70,11 @@ const BrainExplorer = () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = VISUAL.exposure;
+    // Opaque clear colour matching --color-bg-deep. The page background behind
+    // the canvas is the same flat colour, so this changes nothing visually but
+    // makes the post-processing composite deterministic.
+    renderer.setClearColor(0x050509, 1);
     canvasContainer.appendChild(renderer.domElement);
 
     // Controls
@@ -90,10 +115,48 @@ const BrainExplorer = () => {
     rimLight.position.set(0, -2, -3);
     scene.add(rimLight);
 
+    // --- Environment Map ---
+    // A vertical gradient in the site's own palette, used as the scene
+    // environment. Without this, the materials' envMapIntensity does nothing
+    // and the brain renders with no specular response at all.
+    function createGradientEnvironment() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 32;
+      canvas.height = 256;
+      const ctx = canvas.getContext("2d");
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+      gradient.addColorStop(0.0, "#8f70ff"); // --color-secondary, overhead
+      gradient.addColorStop(0.45, "#4a90e2"); // --color-primary, horizon
+      gradient.addColorStop(1.0, "#050509"); // --color-bg-deep, below
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 32, 256);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
+
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    const envSourceTexture = createGradientEnvironment();
+    const envRenderTarget = pmremGenerator.fromEquirectangular(envSourceTexture);
+    scene.environment = envRenderTarget.texture;
+    envSourceTexture.dispose();
+    pmremGenerator.dispose();
+
     // --- Particles Background ---
-    const particleCount = 210;
+    const particleCount = VISUAL.particleCount;
     const particleGeometry = new THREE.BufferGeometry();
     const particlePositions = new Float32Array(particleCount * 3);
+    const particleColors = new Float32Array(particleCount * 3);
+    // Three palette tones so the field reads as depth rather than a flat dust
+    // cloud: --color-primary, --color-secondary, --color-accent-cyan.
+    const particlePalette = [
+      new THREE.Color(0x4a90e2),
+      new THREE.Color(0x8f70ff),
+      new THREE.Color(0x2de2e6),
+    ];
 
     // Keep particles within a spherical shell so they don't get too close
     const minRadius = 4; // minimum distance from origin (bigger = visually smaller)
@@ -115,20 +178,30 @@ const BrainExplorer = () => {
       particlePositions[idx] = x;
       particlePositions[idx + 1] = y;
       particlePositions[idx + 2] = z;
+
+      const tone = particlePalette[i % particlePalette.length];
+      particleColors[idx] = tone.r;
+      particleColors[idx + 1] = tone.g;
+      particleColors[idx + 2] = tone.b;
     }
 
     particleGeometry.setAttribute(
       "position",
       new THREE.BufferAttribute(particlePositions, 3)
     );
+    particleGeometry.setAttribute(
+      "color",
+      new THREE.BufferAttribute(particleColors, 3)
+    );
 
     const particleMaterial = new THREE.PointsMaterial({
-      color: 0x4a90e2,
-      size: 0.03, // you can lower this to 0.015 if you still want them smaller
+      size: VISUAL.particleSize,
       sizeAttenuation: true,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.75,
       blending: THREE.AdditiveBlending,
+      vertexColors: true,
+      depthWrite: false,
     });
 
     const particles = new THREE.Points(particleGeometry, particleMaterial);
@@ -250,9 +323,21 @@ const BrainExplorer = () => {
             (obj.material as any).transparent = false;
             (obj.material as any).depthWrite = true;
             (obj.material as any).depthTest = true;
-            (obj.material as any).roughness = 0.4;
-            (obj.material as any).metalness = 0.1;
-            (obj.material as any).envMapIntensity = 0.5;
+            (obj.material as any).roughness = VISUAL.roughness;
+            (obj.material as any).metalness = VISUAL.metalness;
+            // Now meaningful: scene.environment is set (see Environment Map).
+            (obj.material as any).envMapIntensity = VISUAL.envIntensity;
+            // Base glow so the bloom pass has something to catch even when no
+            // region is selected.
+            //
+            // NOTE: these two use `as THREE.MeshStandardMaterial`, NOT `as any`
+            // like the lines above them — `emissive` and `emissiveIntensity`
+            // are properly typed on MeshStandardMaterial, and
+            // `@typescript-eslint/no-explicit-any` is an error in this repo.
+            (obj.material as THREE.MeshStandardMaterial).emissive =
+              new THREE.Color(VISUAL.baseEmissive);
+            (obj.material as THREE.MeshStandardMaterial).emissiveIntensity =
+              VISUAL.baseEmissiveIntensity;
             obj.castShadow = false;
             obj.receiveShadow = false;
 
@@ -352,28 +437,29 @@ const BrainExplorer = () => {
                 .clone()
                 .offsetHSL(0.05, 0.3, 0.15);
               (obj.material as THREE.MeshStandardMaterial).emissive =
-                new THREE.Color(0x4a90e2);
+                new THREE.Color(VISUAL.activeEmissive);
               (
                 obj.material as THREE.MeshStandardMaterial
-              ).emissiveIntensity = 0.8;
+              ).emissiveIntensity = VISUAL.activeEmissiveIntensity;
             } else if (regionName && !isActive && annotationsVisible) {
-              // Dim other regions
+              // Dim other regions — but keep a trace of the base glow so the
+              // unselected brain never goes fully matte.
               (obj.material as THREE.MeshStandardMaterial).color = base
                 .clone()
                 .offsetHSL(0, -0.3, -0.2);
               (obj.material as THREE.MeshStandardMaterial).emissive =
-                new THREE.Color(0x000000);
+                new THREE.Color(VISUAL.baseEmissive);
               (
                 obj.material as THREE.MeshStandardMaterial
-              ).emissiveIntensity = 0;
+              ).emissiveIntensity = VISUAL.dimEmissiveIntensity;
             } else {
               (obj as any).userData.highlighted = false;
               (obj.material as THREE.MeshStandardMaterial).color.copy(base);
               (obj.material as THREE.MeshStandardMaterial).emissive =
-                new THREE.Color(0x000000);
+                new THREE.Color(VISUAL.baseEmissive);
               (
                 obj.material as THREE.MeshStandardMaterial
-              ).emissiveIntensity = 0;
+              ).emissiveIntensity = VISUAL.baseEmissiveIntensity;
             }
           }
         });
@@ -408,7 +494,7 @@ const BrainExplorer = () => {
             if (!visible) {
               (
                 obj.material as THREE.MeshStandardMaterial
-              ).emissiveIntensity = 0;
+              ).emissiveIntensity = VISUAL.baseEmissiveIntensity;
               if ((obj as any).userData.baseColor) {
                 (obj.material as THREE.MeshStandardMaterial).color.copy(
                   (obj as any).userData.baseColor
@@ -417,7 +503,7 @@ const BrainExplorer = () => {
             } else if ((obj as any).userData.highlighted && currentRegionName) {
               (
                 obj.material as THREE.MeshStandardMaterial
-              ).emissiveIntensity = 0.8;
+              ).emissiveIntensity = VISUAL.activeEmissiveIntensity;
             }
           }
         });
@@ -539,6 +625,21 @@ const BrainExplorer = () => {
     // --- Button Events ---
     if (btnReset) btnReset.addEventListener("click", resetView);
 
+    // --- Post-processing ---
+    // RenderPass draws the scene, UnrealBloomPass adds the glow, OutputPass
+    // applies tone mapping and the sRGB conversion at the end of the chain.
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      VISUAL.bloom.strength,
+      VISUAL.bloom.radius,
+      VISUAL.bloom.threshold
+    );
+    composer.addPass(bloomPass);
+    composer.addPass(new OutputPass());
+
     // --- Animation Loop ---
     function animate() {
       rafId = requestAnimationFrame(animate);
@@ -555,7 +656,7 @@ const BrainExplorer = () => {
       }
 
       controls.update();
-      renderer.render(scene, camera);
+      composer.render();
     }
     animate();
 
@@ -575,6 +676,8 @@ const BrainExplorer = () => {
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
+      composer.setSize(w, h);
+      bloomPass.setSize(w, h);
     }
     window.addEventListener("resize", onWindowResize);
 
@@ -628,6 +731,14 @@ const BrainExplorer = () => {
       particleMaterial.dispose();
 
       scene.clear();
+
+      // Post-processing owns its own render targets.
+      composer.dispose();
+      bloomPass.dispose();
+      if (scene.environment) {
+        (scene.environment as THREE.Texture).dispose();
+        scene.environment = null;
+      }
 
       renderer.dispose();
       renderer.forceContextLoss();
