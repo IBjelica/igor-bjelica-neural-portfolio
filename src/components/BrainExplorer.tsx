@@ -49,6 +49,10 @@ const BrainExplorer = () => {
       dimEmissiveIntensity: 0.12,
       particleCount: 700,
       particleSize: 0.045,
+      // Hover feedback. Deliberately subtle: this is an affordance cue, not a
+      // selection. Must stay well below activeEmissiveIntensity.
+      hoverEmissiveBoost: 0.3,
+      hoverLerpSpeed: 0.15,
     };
 
     // Camera
@@ -259,6 +263,17 @@ const BrainExplorer = () => {
     let targetFov = 45;
     let lastInteractionTime = 0;
 
+    // Hover state. The raycast itself happens once per animation frame, not per
+    // pointermove event — mousemove can fire far more often than 60Hz and
+    // raycasting the brain meshes is not cheap.
+    const regionMeshList: THREE.Mesh[] = [];
+    const hoverPointer = new THREE.Vector2();
+    let hoveredRegionName: string | null = null;
+    let pointerInsideCanvas = false;
+    let pointerNeedsHoverTest = false;
+    let isPointerDown = false;
+    let lastCursor = "";
+
     let disposed = false;
     let rafId = 0;
 
@@ -338,6 +353,8 @@ const BrainExplorer = () => {
               new THREE.Color(VISUAL.baseEmissive);
             (obj.material as THREE.MeshStandardMaterial).emissiveIntensity =
               VISUAL.baseEmissiveIntensity;
+            // Resting intensity that the hover boost is applied on top of.
+            obj.userData.restIntensity = VISUAL.baseEmissiveIntensity;
             obj.castShadow = false;
             obj.receiveShadow = false;
 
@@ -352,6 +369,7 @@ const BrainExplorer = () => {
 
             if (regionKey) {
               regionMeshes[regionKey] = obj;
+              regionMeshList.push(obj);
               (obj as any).userData.baseColor = (
                 obj.material as THREE.MeshStandardMaterial
               ).color.clone();
@@ -441,6 +459,7 @@ const BrainExplorer = () => {
               (
                 obj.material as THREE.MeshStandardMaterial
               ).emissiveIntensity = VISUAL.activeEmissiveIntensity;
+              obj.userData.restIntensity = VISUAL.activeEmissiveIntensity;
             } else if (regionName && !isActive && annotationsVisible) {
               // Dim other regions — but keep a trace of the base glow so the
               // unselected brain never goes fully matte.
@@ -452,6 +471,7 @@ const BrainExplorer = () => {
               (
                 obj.material as THREE.MeshStandardMaterial
               ).emissiveIntensity = VISUAL.dimEmissiveIntensity;
+              obj.userData.restIntensity = VISUAL.dimEmissiveIntensity;
             } else {
               (obj as any).userData.highlighted = false;
               (obj.material as THREE.MeshStandardMaterial).color.copy(base);
@@ -460,6 +480,7 @@ const BrainExplorer = () => {
               (
                 obj.material as THREE.MeshStandardMaterial
               ).emissiveIntensity = VISUAL.baseEmissiveIntensity;
+              obj.userData.restIntensity = VISUAL.baseEmissiveIntensity;
             }
           }
         });
@@ -495,6 +516,7 @@ const BrainExplorer = () => {
               (
                 obj.material as THREE.MeshStandardMaterial
               ).emissiveIntensity = VISUAL.baseEmissiveIntensity;
+              obj.userData.restIntensity = VISUAL.baseEmissiveIntensity;
               if ((obj as any).userData.baseColor) {
                 (obj.material as THREE.MeshStandardMaterial).color.copy(
                   (obj as any).userData.baseColor
@@ -504,6 +526,7 @@ const BrainExplorer = () => {
               (
                 obj.material as THREE.MeshStandardMaterial
               ).emissiveIntensity = VISUAL.activeEmissiveIntensity;
+              obj.userData.restIntensity = VISUAL.activeEmissiveIntensity;
             }
           }
         });
@@ -572,6 +595,7 @@ const BrainExplorer = () => {
 
     // --- Pointer Interaction ---
     function onPointerDown(event: PointerEvent) {
+      isPointerDown = true;
       userHasInteracted = true;
       controls.autoRotate = false;
       lastInteractionTime = Date.now();
@@ -580,6 +604,7 @@ const BrainExplorer = () => {
     }
 
     function onPointerUp(event: PointerEvent) {
+      isPointerDown = false;
       if (!brainRoot) return;
 
       // Check if dragged beyond threshold
@@ -615,10 +640,46 @@ const BrainExplorer = () => {
       }
     }
 
+    // Records where the mouse is; the actual raycast runs in the animation
+    // loop, at most once per frame.
+    function onPointerMove(event: PointerEvent) {
+      // Hover is a mouse affordance. On touch, a "hover" would latch on after
+      // every tap and never clear.
+      if (event.pointerType !== "mouse") return;
+
+      pointerInsideCanvas = true;
+
+      const rect = renderer.domElement.getBoundingClientRect();
+      hoverPointer.set(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        -((event.clientY - rect.top) / rect.height) * 2 + 1
+      );
+      pointerNeedsHoverTest = true;
+    }
+
+    function onPointerLeave() {
+      pointerInsideCanvas = false;
+      hoveredRegionName = null;
+      pointerNeedsHoverTest = false;
+      setCanvasCursor("");
+    }
+
+    function setCanvasCursor(cursor: string) {
+      if (cursor === lastCursor) return;
+      lastCursor = cursor;
+      renderer.domElement.style.cursor = cursor;
+    }
+
     renderer.domElement.addEventListener("pointerdown", onPointerDown, {
       passive: true,
     });
     renderer.domElement.addEventListener("pointerup", onPointerUp, {
+      passive: true,
+    });
+    renderer.domElement.addEventListener("pointermove", onPointerMove, {
+      passive: true,
+    });
+    renderer.domElement.addEventListener("pointerleave", onPointerLeave, {
       passive: true,
     });
 
@@ -656,6 +717,40 @@ const BrainExplorer = () => {
       }
 
       controls.update();
+
+      // --- Hover detection (at most once per frame) ---
+      if (
+        pointerNeedsHoverTest &&
+        pointerInsideCanvas &&
+        !isPointerDown &&
+        regionMeshList.length > 0
+      ) {
+        pointerNeedsHoverTest = false;
+        raycaster.setFromCamera(hoverPointer, camera);
+        const hits = raycaster.intersectObjects(regionMeshList, false);
+        hoveredRegionName = hits.length
+          ? hits[0].object.userData.regionKey || null
+          : null;
+        setCanvasCursor(hoveredRegionName ? "pointer" : "");
+      } else if (isPointerDown && hoveredRegionName) {
+        // Dragging to rotate should not leave a region stuck in hover.
+        hoveredRegionName = null;
+        setCanvasCursor("");
+      }
+
+      // --- Hover glow easing ---
+      for (const mesh of regionMeshList) {
+        const material = mesh.material as THREE.MeshStandardMaterial;
+        const rest = mesh.userData.restIntensity ?? VISUAL.baseEmissiveIntensity;
+        const boost =
+          annotationsVisible && mesh.userData.regionKey === hoveredRegionName
+            ? VISUAL.hoverEmissiveBoost
+            : 0;
+        const target = rest + boost;
+        material.emissiveIntensity +=
+          (target - material.emissiveIntensity) * VISUAL.hoverLerpSpeed;
+      }
+
       composer.render();
     }
     animate();
@@ -709,6 +804,9 @@ const BrainExplorer = () => {
       window.removeEventListener("resize", onWindowResize);
       renderer.domElement.removeEventListener("pointerdown", onPointerDown);
       renderer.domElement.removeEventListener("pointerup", onPointerUp);
+      renderer.domElement.removeEventListener("pointermove", onPointerMove);
+      renderer.domElement.removeEventListener("pointerleave", onPointerLeave);
+      renderer.domElement.style.cursor = "";
       if (btnReset) btnReset.removeEventListener("click", resetView);
 
       // OrbitControls keeps its own pointer/wheel listeners on the canvas.
