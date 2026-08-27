@@ -49,9 +49,12 @@ const BrainExplorer = () => {
       dimEmissiveIntensity: 0.12,
       particleCount: 700,
       particleSize: 0.045,
-      // Hover feedback. Deliberately subtle: this is an affordance cue, not a
-      // selection. Must stay well below activeEmissiveIntensity.
-      hoverEmissiveBoost: 0.3,
+      // Hover feedback. Hover gets its own COLOUR, not just more intensity:
+      // baseEmissive is a near-black navy, so raising its intensity alone never
+      // reaches the bloom threshold and reads as almost nothing. Cyan is
+      // --color-accent-cyan, deliberately distinct from the blue selection glow.
+      hoverEmissive: 0x2de2e6,
+      hoverEmissiveBoost: 0.6,
       hoverLerpSpeed: 0.15,
     };
 
@@ -273,6 +276,7 @@ const BrainExplorer = () => {
     let pointerNeedsHoverTest = false;
     let isPointerDown = false;
     let lastCursor = "";
+    const hoverEmissiveColor = new THREE.Color(VISUAL.hoverEmissive);
 
     let disposed = false;
     let rafId = 0;
@@ -355,6 +359,7 @@ const BrainExplorer = () => {
               VISUAL.baseEmissiveIntensity;
             // Resting intensity that the hover boost is applied on top of.
             obj.userData.restIntensity = VISUAL.baseEmissiveIntensity;
+            obj.userData.restEmissive = new THREE.Color(VISUAL.baseEmissive);
             obj.castShadow = false;
             obj.receiveShadow = false;
 
@@ -460,6 +465,7 @@ const BrainExplorer = () => {
                 obj.material as THREE.MeshStandardMaterial
               ).emissiveIntensity = VISUAL.activeEmissiveIntensity;
               obj.userData.restIntensity = VISUAL.activeEmissiveIntensity;
+              obj.userData.restEmissive = new THREE.Color(VISUAL.activeEmissive);
             } else if (regionName && !isActive && annotationsVisible) {
               // Dim other regions — but keep a trace of the base glow so the
               // unselected brain never goes fully matte.
@@ -472,6 +478,7 @@ const BrainExplorer = () => {
                 obj.material as THREE.MeshStandardMaterial
               ).emissiveIntensity = VISUAL.dimEmissiveIntensity;
               obj.userData.restIntensity = VISUAL.dimEmissiveIntensity;
+              obj.userData.restEmissive = new THREE.Color(VISUAL.baseEmissive);
             } else {
               (obj as any).userData.highlighted = false;
               (obj.material as THREE.MeshStandardMaterial).color.copy(base);
@@ -481,6 +488,7 @@ const BrainExplorer = () => {
                 obj.material as THREE.MeshStandardMaterial
               ).emissiveIntensity = VISUAL.baseEmissiveIntensity;
               obj.userData.restIntensity = VISUAL.baseEmissiveIntensity;
+              obj.userData.restEmissive = new THREE.Color(VISUAL.baseEmissive);
             }
           }
         });
@@ -517,6 +525,7 @@ const BrainExplorer = () => {
                 obj.material as THREE.MeshStandardMaterial
               ).emissiveIntensity = VISUAL.baseEmissiveIntensity;
               obj.userData.restIntensity = VISUAL.baseEmissiveIntensity;
+              obj.userData.restEmissive = new THREE.Color(VISUAL.baseEmissive);
               if ((obj as any).userData.baseColor) {
                 (obj.material as THREE.MeshStandardMaterial).color.copy(
                   (obj as any).userData.baseColor
@@ -527,6 +536,7 @@ const BrainExplorer = () => {
                 obj.material as THREE.MeshStandardMaterial
               ).emissiveIntensity = VISUAL.activeEmissiveIntensity;
               obj.userData.restIntensity = VISUAL.activeEmissiveIntensity;
+              obj.userData.restEmissive = new THREE.Color(VISUAL.activeEmissive);
             }
           }
         });
@@ -741,14 +751,26 @@ const BrainExplorer = () => {
       // --- Hover glow easing ---
       for (const mesh of regionMeshList) {
         const material = mesh.material as THREE.MeshStandardMaterial;
+
+        // The currently selected region is excluded from hover feedback: its
+        // look is already the strongest state and shifting it to the hover
+        // colour would make selection unstable under the cursor.
+        const isHovered =
+          annotationsVisible &&
+          mesh.userData.regionKey === hoveredRegionName &&
+          mesh.userData.regionKey !== currentRegionName;
+
         const rest = mesh.userData.restIntensity ?? VISUAL.baseEmissiveIntensity;
-        const boost =
-          annotationsVisible && mesh.userData.regionKey === hoveredRegionName
-            ? VISUAL.hoverEmissiveBoost
-            : 0;
-        const target = rest + boost;
+        const target = rest + (isHovered ? VISUAL.hoverEmissiveBoost : 0);
         material.emissiveIntensity +=
           (target - material.emissiveIntensity) * VISUAL.hoverLerpSpeed;
+
+        const targetColor = isHovered
+          ? hoverEmissiveColor
+          : (mesh.userData.restEmissive as THREE.Color);
+        if (targetColor) {
+          material.emissive.lerp(targetColor, VISUAL.hoverLerpSpeed);
+        }
       }
 
       composer.render();
