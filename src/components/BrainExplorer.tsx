@@ -322,7 +322,7 @@ const BrainExplorer = () => {
     const loader = new GLTFLoader();
     loader.setMeshoptDecoder(MeshoptDecoder);
     const loadStartTime = performance.now();
-    const modelPath = "/brain-illuminated.glb";
+    const modelPath = "/brain-regions.glb";
 
     loader.load(
       modelPath,
