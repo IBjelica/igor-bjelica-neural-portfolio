@@ -48,7 +48,7 @@ const BrainExplorer = () => {
       activeEmissiveIntensity: 1.6,
       dimEmissiveIntensity: 0.12,
       particleCount: 700,
-      particleSize: 0.045,
+      particleSize: 0.08,
       // Hover feedback. Hover gets its own COLOUR, not just more intensity:
       // baseEmissive is a near-black navy, so raising its intensity alone reads
       // as almost nothing. Cyan is --color-accent-cyan, deliberately distinct
@@ -159,18 +159,52 @@ const BrainExplorer = () => {
     envSourceTexture.dispose();
     pmremGenerator.dispose();
 
+    // --- Star Sprite ---
+    // A PointsMaterial with no map draws each point as a solid quad, which is
+    // why the stars were squares. This draws one starburst — a soft core plus
+    // four tapered spikes — and every point samples it.
+    function createStarTexture() {
+      const size = 64;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      const c = size / 2;
+
+      // Spikes are additive so the centre reads brightest where they cross.
+      ctx.globalCompositeOperation = "lighter";
+
+      const core = ctx.createRadialGradient(c, c, 0, c, c, size * 0.16);
+      core.addColorStop(0, "rgba(255, 255, 255, 1)");
+      core.addColorStop(1, "rgba(255, 255, 255, 0)");
+      ctx.fillStyle = core;
+      ctx.fillRect(0, 0, size, size);
+
+      const horizontal = ctx.createLinearGradient(0, c, size, c);
+      horizontal.addColorStop(0, "rgba(255, 255, 255, 0)");
+      horizontal.addColorStop(0.5, "rgba(255, 255, 255, 0.85)");
+      horizontal.addColorStop(1, "rgba(255, 255, 255, 0)");
+      ctx.fillStyle = horizontal;
+      ctx.fillRect(0, c - 1, size, 2);
+
+      const vertical = ctx.createLinearGradient(c, 0, c, size);
+      vertical.addColorStop(0, "rgba(255, 255, 255, 0)");
+      vertical.addColorStop(0.5, "rgba(255, 255, 255, 0.85)");
+      vertical.addColorStop(1, "rgba(255, 255, 255, 0)");
+      ctx.fillStyle = vertical;
+      ctx.fillRect(c - 1, 0, 2, size);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }
+
+    const starTexture = createStarTexture();
+
     // --- Particles Background ---
     const particleCount = VISUAL.particleCount;
     const particleGeometry = new THREE.BufferGeometry();
     const particlePositions = new Float32Array(particleCount * 3);
-    const particleColors = new Float32Array(particleCount * 3);
-    // Three palette tones so the field reads as depth rather than a flat dust
-    // cloud: --color-primary, --color-secondary, --color-accent-cyan.
-    const particlePalette = [
-      new THREE.Color(0x4a90e2),
-      new THREE.Color(0x8f70ff),
-      new THREE.Color(0x2de2e6),
-    ];
 
     // Keep particles within a spherical shell so they don't get too close
     const minRadius = 4; // minimum distance from origin (bigger = visually smaller)
@@ -192,30 +226,22 @@ const BrainExplorer = () => {
       particlePositions[idx] = x;
       particlePositions[idx + 1] = y;
       particlePositions[idx + 2] = z;
-
-      const tone = particlePalette[i % particlePalette.length];
-      particleColors[idx] = tone.r;
-      particleColors[idx + 1] = tone.g;
-      particleColors[idx + 2] = tone.b;
     }
 
     particleGeometry.setAttribute(
       "position",
       new THREE.BufferAttribute(particlePositions, 3)
     );
-    particleGeometry.setAttribute(
-      "color",
-      new THREE.BufferAttribute(particleColors, 3)
-    );
 
     const particleMaterial = new THREE.PointsMaterial({
       size: VISUAL.particleSize,
       sizeAttenuation: true,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.9,
       blending: THREE.AdditiveBlending,
-      vertexColors: true,
       depthWrite: false,
+      map: starTexture,
+      color: 0xffffff,
     });
 
     const particles = new THREE.Points(particleGeometry, particleMaterial);
@@ -856,6 +882,7 @@ const BrainExplorer = () => {
       // above skips it.
       particleGeometry.dispose();
       particleMaterial.dispose();
+      starTexture.dispose();
 
       scene.clear();
 
