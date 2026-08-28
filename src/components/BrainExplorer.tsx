@@ -50,11 +50,18 @@ const BrainExplorer = () => {
       particleCount: 700,
       particleSize: 0.045,
       // Hover feedback. Hover gets its own COLOUR, not just more intensity:
-      // baseEmissive is a near-black navy, so raising its intensity alone never
-      // reaches the bloom threshold and reads as almost nothing. Cyan is
-      // --color-accent-cyan, deliberately distinct from the blue selection glow.
+      // baseEmissive is a near-black navy, so raising its intensity alone reads
+      // as almost nothing. Cyan is --color-accent-cyan, deliberately distinct
+      // from the blue selection glow.
+      //
+      // Boost is calibrated so hover lands at ~60% of the selected state's
+      // luminance: cyan carries 0.736 luminance per unit intensity vs blue's
+      // 0.530, so 0.45 + 0.25 = 0.70 gives 0.515 against selected's 1.6 × 0.530
+      // = 0.848. This sits just below bloom.threshold (0.75), so hover shifts
+      // colour and brightens without flaring — which is what keeps it from
+      // outshining an actual selection.
       hoverEmissive: 0x2de2e6,
-      hoverEmissiveBoost: 0.6,
+      hoverEmissiveBoost: 0.25,
       hoverLerpSpeed: 0.15,
     };
 
