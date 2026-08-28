@@ -32,19 +32,6 @@
   --color-border: rgba(255, 255, 255, 0.08);
   --color-border-hover: rgba(74, 144, 226, 0.5);
 
-  /* Gradients */
-  --gradient-hero: radial-gradient(ellipse at 20% 20%, #0d0f13 0%, #050509 70%);
-  --gradient-card: linear-gradient(
-    135deg,
-    rgba(74, 144, 226, 0.1) 0%,
-    rgba(143, 112, 255, 0.05) 100%
-  );
-  --gradient-glow: linear-gradient(
-    135deg,
-    var(--color-primary) 0%,
-    var(--color-secondary) 100%
-  );
-
   /* Typography */
   --font-heading: "Space Grotesk", system-ui, sans-serif;
   --font-body: "Inter", system-ui, sans-serif;
@@ -149,7 +136,7 @@ h6 {
   font-weight: 700;
   font-size: 1.75rem;
   letter-spacing: -0.02em;
-  background: var(--gradient-glow);
+  background: var(--color-primary);
   /* -webkit-background-clip: text; */
   /* -webkit-text-fill-color: transparent; */
   /* background-clip: text; */
@@ -167,7 +154,7 @@ h6 {
   position: absolute;
   inset: -2px;
   border-radius: var(--radius-sm);
-  background: var(--gradient-glow);
+  background: var(--color-primary);
   z-index: -1;
   opacity: 0.3;
   filter: blur(8px);
@@ -226,7 +213,7 @@ h6 {
   left: 0;
   width: 0;
   height: 2px;
-  background: var(--gradient-glow);
+  background: var(--color-primary);
   transition: var(--transition-normal);
 }
 
@@ -335,11 +322,7 @@ h6 {
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(5, 5, 9, 0.3) 100%
-  );
+  background: var(--color-bg-deep);
 }
 
 .hero-content {
@@ -365,15 +348,8 @@ h6 {
   font-weight: 700;
   letter-spacing: -0.03em;
   margin-bottom: var(--space-md);
-  background: linear-gradient(
-    135deg,
-    var(--color-text-primary) 0%,
-    var(--color-primary) 50%,
-    var(--color-secondary) 100%
-  );
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  background: none;
+  color: var(--color-text-primary);
   animation: fadeInUp 0.8s ease forwards;
   animation-delay: 0.5s;
   opacity: 0;
@@ -415,7 +391,7 @@ h6 {
 }
 
 .btn-primary {
-  background: var(--gradient-glow);
+  background: var(--color-primary);
   color: var(--color-text-primary);
   box-shadow: 0 4px 20px var(--color-primary-glow);
 }
@@ -443,7 +419,7 @@ h6 {
 }
 
 .btn.success {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: #10b981;
 }
 
 /* Scroll Indicator */
@@ -490,7 +466,7 @@ h6 {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--gradient-hero);
+  background: var(--color-bg-deep);
   font-size: 0.875rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -804,11 +780,7 @@ h6 {
 }
 
 .experience-card.featured {
-  background: linear-gradient(
-    135deg,
-    rgba(74, 144, 226, 0.08) 0%,
-    rgba(143, 112, 255, 0.05) 100%
-  );
+  background: var(--color-bg-card);
   border-color: rgba(74, 144, 226, 0.3);
 }
 
@@ -818,11 +790,9 @@ h6 {
   right: 0;
   width: 200px;
   height: 200px;
-  background: radial-gradient(
-    circle,
-    var(--color-primary-glow) 0%,
-    transparent 70%
-  );
+  background: var(--color-primary-glow);
+  border-radius: 50%;
+  filter: blur(40px);
   opacity: 0;
   transition: var(--transition-slow);
 }
@@ -937,7 +907,7 @@ h6 {
 
 .project-card.featured {
   grid-column: span 2;
-  background: var(--gradient-card);
+  background: var(--color-bg-card);
   border-color: rgba(74, 144, 226, 0.3);
 }
 
@@ -953,11 +923,9 @@ h6 {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(
-    circle,
-    var(--color-secondary-glow) 0%,
-    transparent 50%
-  );
+  background: var(--color-secondary-glow);
+  border-radius: 50%;
+  filter: blur(60px);
   opacity: 0;
   transition: var(--transition-slow);
 }
