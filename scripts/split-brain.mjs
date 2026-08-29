@@ -32,6 +32,7 @@ const srcMesh = root.listMeshes()[0];
 const srcPrim = srcMesh.listPrimitives()[0];
 const position = srcPrim.getAttribute("POSITION");
 const normal = srcPrim.getAttribute("NORMAL");
+const texcoord = srcPrim.getAttribute("TEXCOORD_0");
 const indices = srcPrim.getIndices().getArray();
 const pos = position.getArray();
 
@@ -71,6 +72,7 @@ for (const name of REGIONS) {
     .createPrimitive()
     .setAttribute("POSITION", position)
     .setAttribute("NORMAL", normal)
+    .setAttribute("TEXCOORD_0", texcoord)
     .setIndices(idxAccessor)
     .setMaterial(material);
 
@@ -85,7 +87,7 @@ srcMesh.dispose();
 // they are pruned, so the 1.3 MB JPEG would still be written. prune() also drops
 // the now-unreferenced TEXCOORD_0 accessor, since the new primitives only carry
 // POSITION and NORMAL.
-await doc.transform(prune());
+await doc.transform(prune({ keepAttributes: true }));
 
 await io.write("public/brain-regions.glb", doc);
 console.log("wrote public/brain-regions.glb");
