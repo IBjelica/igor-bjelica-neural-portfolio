@@ -63,10 +63,6 @@ const BrainExplorer = () => {
       hoverEmissive: 0x2de2e6,
       hoverEmissiveBoost: 0.25,
       hoverLerpSpeed: 0.15,
-      // Surface relief. Fake per-pixel folds via a procedural normal map —
-      // the model itself has no gyri, only 3,288 triangles.
-      surfaceRelief: 0.6,
-      surfaceDetail: 8,
     };
 
     // Camera
@@ -322,84 +318,6 @@ const BrainExplorer = () => {
       });
     }
 
-    // --- Surface Relief ---
-    // Ridged value noise baked to a normal map. The ridges (rather than plain
-    // lumps) are what read as sulci. Periodic hashing keeps it tiling seamlessly.
-    function createBrainNormalMap() {
-      const size = 512;
-      const canvas = document.createElement("canvas");
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext("2d");
-
-      const hash = (x: number, y: number, period: number) => {
-        const xi = ((x % period) + period) % period;
-        const yi = ((y % period) + period) % period;
-        let h = xi * 374761393 + yi * 668265263;
-        h = (h ^ (h >> 13)) * 1274126177;
-        return ((h ^ (h >> 16)) >>> 0) / 4294967295;
-      };
-      const smooth = (t: number) => t * t * (3 - 2 * t);
-      const noise = (x: number, y: number, period: number) => {
-        const xi = Math.floor(x);
-        const yi = Math.floor(y);
-        const u = smooth(x - xi);
-        const v = smooth(y - yi);
-        const a = hash(xi, yi, period);
-        const b = hash(xi + 1, yi, period);
-        const c = hash(xi, yi + 1, period);
-        const d = hash(xi + 1, yi + 1, period);
-        return (
-          a * (1 - u) * (1 - v) + b * u * (1 - v) + c * (1 - u) * v + d * u * v
-        );
-      };
-      const height = (u: number, v: number) => {
-        let sum = 0;
-        let amp = 1;
-        let norm = 0;
-        let freq = VISUAL.surfaceDetail;
-        for (let o = 0; o < 4; o++) {
-          // 1 - |2n-1| turns smooth noise into ridges.
-          sum += amp * (1 - Math.abs(noise(u * freq, v * freq, freq) * 2 - 1));
-          norm += amp;
-          amp *= 0.5;
-          freq *= 2;
-        }
-        return sum / norm;
-      };
-
-      const image = ctx.createImageData(size, size);
-      const step = 1 / size;
-      for (let y = 0; y < size; y++) {
-        for (let x = 0; x < size; x++) {
-          const u = x / size;
-          const v = y / size;
-          // Central differences → surface gradient → tangent-space normal.
-          const dx = height(u + step, v) - height(u - step, v);
-          const dy = height(u, v + step) - height(u, v - step);
-          const nx = -dx * size * 0.02;
-          const ny = -dy * size * 0.02;
-          const nz = 1;
-          const len = Math.hypot(nx, ny, nz);
-          const i = (y * size + x) * 4;
-          image.data[i] = ((nx / len) * 0.5 + 0.5) * 255;
-          image.data[i + 1] = ((ny / len) * 0.5 + 0.5) * 255;
-          image.data[i + 2] = ((nz / len) * 0.5 + 0.5) * 255;
-          image.data[i + 3] = 255;
-        }
-      }
-      ctx.putImageData(image, 0, 0);
-
-      const texture = new THREE.CanvasTexture(canvas);
-      // Normal maps hold vectors, not colour — must stay linear.
-      texture.colorSpace = THREE.NoColorSpace;
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.RepeatWrapping;
-      return texture;
-    }
-
-    const brainNormalMap = createBrainNormalMap();
-
     // --- Load Brain Model ---
     const loader = new GLTFLoader();
     loader.setMeshoptDecoder(MeshoptDecoder);
@@ -449,12 +367,6 @@ const BrainExplorer = () => {
             // Resting intensity that the hover boost is applied on top of.
             obj.userData.restIntensity = VISUAL.baseEmissiveIntensity;
             obj.userData.restEmissive = new THREE.Color(VISUAL.baseEmissive);
-            // Per-pixel surface relief. three derives the tangent frame from
-            // screen-space derivatives, so no TANGENT attribute is needed.
-            (obj.material as THREE.MeshStandardMaterial).normalMap =
-              brainNormalMap;
-            (obj.material as THREE.MeshStandardMaterial).normalScale =
-              new THREE.Vector2(VISUAL.surfaceRelief, VISUAL.surfaceRelief);
             obj.castShadow = false;
             obj.receiveShadow = false;
 
@@ -944,7 +856,6 @@ const BrainExplorer = () => {
       // above skips it.
       particleGeometry.dispose();
       particleMaterial.dispose();
-      brainNormalMap.dispose();
 
       scene.clear();
 
