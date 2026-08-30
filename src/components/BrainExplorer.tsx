@@ -409,6 +409,39 @@ const BrainExplorer = () => {
             // Resting intensity that the hover boost is applied on top of.
             obj.userData.restIntensity = VISUAL.baseEmissiveIntensity;
             obj.userData.restEmissive = new THREE.Color(VISUAL.baseEmissive);
+
+            // Per-vertex region fade. glTF custom attributes arrive with
+            // varying case depending on loader version, so check both, then
+            // re-register under the name the shader patch declares.
+            const fadeAttr =
+              obj.geometry.getAttribute("_regionfade") ||
+              obj.geometry.getAttribute("_REGIONFADE");
+            if (fadeAttr) {
+              obj.geometry.setAttribute("aRegionFade", fadeAttr);
+            }
+
+            // Multiply emissive by that weight so a highlighted region's glow
+            // fades out at its borders instead of ending on a hard line.
+            // NOTE: this fades the resting glow at borders too. That is
+            // deliberate and invisible in practice — the resting emissive is
+            // 0x14284d at 0.45, luminance ~0.07, far below the bloom threshold.
+            (obj.material as THREE.MeshStandardMaterial).onBeforeCompile = (
+              shader
+            ) => {
+              shader.vertexShader =
+                "attribute float aRegionFade;\nvarying float vRegionFade;\n" +
+                shader.vertexShader.replace(
+                  "#include <begin_vertex>",
+                  "#include <begin_vertex>\n  vRegionFade = aRegionFade;"
+                );
+              shader.fragmentShader =
+                "varying float vRegionFade;\n" +
+                shader.fragmentShader.replace(
+                  "#include <emissivemap_fragment>",
+                  "#include <emissivemap_fragment>\n  totalEmissiveRadiance *= vRegionFade;"
+                );
+            };
+
             obj.castShadow = false;
             obj.receiveShadow = false;
 
