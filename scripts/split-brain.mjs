@@ -11,17 +11,89 @@ const REGIONS = [
   "Limbic_System",
 ];
 
+// --- Boundary wobble ---
+// classify() cuts on planes, which makes region borders ruler-straight lines
+// that ignore the anatomy underneath. Offsetting every threshold by a shared
+// 3D noise value makes the borders wander organically instead.
+const WOBBLE_AMPLITUDE = 0.05;
+const WOBBLE_FREQUENCY = 7;
+
+function wobbleHash(x, y, z) {
+  let h = x * 374761393 + y * 668265263 + z * 1442695040;
+  h = (h ^ (h >> 13)) * 1274126177;
+  return ((h ^ (h >> 16)) >>> 0) / 4294967295;
+}
+
+function wobble(x, y, z) {
+  const f = WOBBLE_FREQUENCY;
+  const px = x * f;
+  const py = y * f;
+  const pz = z * f;
+  const xi = Math.floor(px);
+  const yi = Math.floor(py);
+  const zi = Math.floor(pz);
+  const s = (t) => t * t * (3 - 2 * t);
+  const xf = s(px - xi);
+  const yf = s(py - yi);
+  const zf = s(pz - zi);
+  let sum = 0;
+  for (let dz = 0; dz < 2; dz++) {
+    for (let dy = 0; dy < 2; dy++) {
+      for (let dx = 0; dx < 2; dx++) {
+        const w =
+          (dx ? xf : 1 - xf) * (dy ? yf : 1 - yf) * (dz ? zf : 1 - zf);
+        sum += w * wobbleHash(xi + dx, yi + dy, zi + dz);
+      }
+    }
+  }
+  return (sum - 0.5) * 2 * WOBBLE_AMPLITUDE;
+}
+
 // Orientation (established by analysis, see plan 010):
 //   +Y up, -Z anterior/front, +Z posterior/back, X lateral.
 // First rule that matches wins — order matters.
 function classify(x, y, z) {
-  if (y < -0.3 && Math.hypot(x, z - 0.15) < 0.18) return "Brain_Stem";
-  if (y < -0.12 && z > 0.1) return "Cerebellum";
-  if (y < 0.05 && Math.abs(x) < 0.12) return "Limbic_System";
-  if (y < -0.05 && z < 0.25) return "Temporal_Lobe";
-  if (z > 0.32) return "Occipital_Lobe";
-  if (z < -0.12) return "Frontal_Lobe";
+  const w = wobble(x, y, z);
+  if (y < -0.3 + w && Math.hypot(x, z - 0.15) < 0.18 + w) return "Brain_Stem";
+  if (y < -0.12 + w && z > 0.1 + w) return "Cerebellum";
+  if (y < 0.05 + w && Math.abs(x) < 0.12 + w) return "Limbic_System";
+  if (y < -0.05 + w && z < 0.25 + w) return "Temporal_Lobe";
+  if (z > 0.32 + w) return "Occipital_Lobe";
+  if (z < -0.12 + w) return "Frontal_Lobe";
   return "Parietal_Lobe";
+}
+
+// --- Region fade weight ---
+// Distance from each vertex to the nearest point where classify() returns a
+// different region, found by marching outward in six axis directions. Because
+// it depends only on position, a single shared attribute serves all seven
+// regions — two regions meeting at a border both read the same low value there
+// and fade into each other.
+const FADE_BAND = 0.06;
+const FADE_STEPS = 4;
+
+function fadeWeight(x, y, z) {
+  const here = classify(x, y, z);
+  const dirs = [
+    [1, 0, 0],
+    [-1, 0, 0],
+    [0, 1, 0],
+    [0, -1, 0],
+    [0, 0, 1],
+    [0, 0, -1],
+  ];
+  let nearest = FADE_BAND;
+  for (const [dx, dy, dz] of dirs) {
+    for (let s = 1; s <= FADE_STEPS; s++) {
+      const d = (FADE_BAND * s) / FADE_STEPS;
+      if (classify(x + dx * d, y + dy * d, z + dz * d) !== here) {
+        if (d < nearest) nearest = d;
+        break;
+      }
+    }
+  }
+  const t = nearest / FADE_BAND;
+  return t * t * (3 - 2 * t);
 }
 
 function recomputeNormals(p, idx) {
@@ -126,6 +198,27 @@ const normalAccessor = doc
   .setArray(normals)
   .setBuffer(buffer);
 
+const fade = new Float32Array(positions.length / 3);
+for (let i = 0; i < fade.length; i++) {
+  fade[i] = fadeWeight(
+    positions[i * 3],
+    positions[i * 3 + 1],
+    positions[i * 3 + 2]
+  );
+}
+const fadeAccessor = doc
+  .createAccessor("_REGIONFADE")
+  .setType("SCALAR")
+  .setArray(fade)
+  .setBuffer(buffer);
+
+let faded = 0;
+for (let i = 0; i < fade.length; i++) if (fade[i] < 0.99) faded++;
+console.log(
+  `fade weights: ${faded} of ${fade.length} vertices inside the band ` +
+    `(${((faded / fade.length) * 100).toFixed(1)}%)`
+);
+
 const buckets = new Map(REGIONS.map((r) => [r, []]));
 for (let t = 0; t < indices.length / 3; t++) {
   const a = indices[t * 3];
@@ -157,6 +250,7 @@ for (const name of REGIONS) {
     .createPrimitive()
     .setAttribute("POSITION", positionAccessor)
     .setAttribute("NORMAL", normalAccessor)
+    .setAttribute("_REGIONFADE", fadeAccessor)
     .setIndices(idxAccessor)
     .setMaterial(material);
 
