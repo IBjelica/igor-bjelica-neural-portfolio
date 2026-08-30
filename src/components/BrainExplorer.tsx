@@ -63,6 +63,14 @@ const BrainExplorer = () => {
       hoverEmissive: 0x2de2e6,
       hoverEmissiveBoost: 0.25,
       hoverLerpSpeed: 0.15,
+      // Opening camera framing. Model convention: +Y up, -Z anterior (front),
+      // +Z posterior. The default used to be (0, 1.0, 3.5) — directly behind the
+      // brain, i.e. the occipital pole. These values put it on a left-lateral
+      // three-quarter, ~25 degrees elevated, frontal pole toward frame-left.
+      // Reconstructed from a reference screenshot; see the console helper in the
+      // maintenance notes for how to capture exact values.
+      cameraPosition: [-2.9, 1.8, -0.95],
+      cameraTarget: [0, 0.3, 0],
     };
 
     // Camera
@@ -72,7 +80,11 @@ const BrainExplorer = () => {
       0.1,
       100
     );
-    camera.position.set(0, 1.0, 3.5);
+    camera.position.set(
+      VISUAL.cameraPosition[0],
+      VISUAL.cameraPosition[1],
+      VISUAL.cameraPosition[2]
+    );
 
     // Renderer
     const renderer = new THREE.WebGLRenderer({
@@ -99,7 +111,11 @@ const BrainExplorer = () => {
     controls.zoomSpeed = 0.8;
     controls.minDistance = 1.5;
     controls.maxDistance = 6.0;
-    controls.target.set(0, 0.3, 0);
+    controls.target.set(
+      VISUAL.cameraTarget[0],
+      VISUAL.cameraTarget[1],
+      VISUAL.cameraTarget[2]
+    );
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.3;
     controls.enablePan = false;
@@ -627,8 +643,16 @@ const BrainExplorer = () => {
 
     function resetView() {
       controls.autoRotate = true;
-      const defaultTarget = new THREE.Vector3(0, 0.3, 0);
-      const defaultPos = new THREE.Vector3(0, 1.0, 3.5);
+      const defaultTarget = new THREE.Vector3(
+        VISUAL.cameraTarget[0],
+        VISUAL.cameraTarget[1],
+        VISUAL.cameraTarget[2]
+      );
+      const defaultPos = new THREE.Vector3(
+        VISUAL.cameraPosition[0],
+        VISUAL.cameraPosition[1],
+        VISUAL.cameraPosition[2]
+      );
 
       tweenCameraTo(defaultPos, defaultTarget, 900);
       highlightRegion(null);
@@ -837,6 +861,8 @@ const BrainExplorer = () => {
       resetView,
       setAnnotationsVisible,
       highlightRegion,
+      camera,
+      controls,
       getCurrentRegion() {
         return currentRegionName;
       },
