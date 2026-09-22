@@ -615,6 +615,24 @@ h6 {
   #brain-hint {
     display: none;
   }
+
+  #brain-tech-caption {
+    display: none;
+  }
+}
+
+/*
+ * Names the technology behind the hero without competing with it: one line,
+ * smaller and dimmer than the interaction hint above it.
+ */
+#brain-tech-caption {
+  margin-top: var(--space-sm);
+  font-size: 0.625rem;
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  color: var(--color-text-subtle);
+  text-align: center;
+  max-width: 34ch;
 }
 
 /* --- Sections --- */
@@ -887,12 +905,32 @@ h6 {
 
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  /* One column on mobile; widened at the breakpoints below. */
+  grid-template-columns: 1fr;
   gap: var(--space-xl);
+}
+
+@media (min-width: 640px) {
+  .projects-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/*
+ * Two across at desktop, not three. With four projects a three-column grid
+ * left the fourth card alone on its own row beside two empty slots; 2x2 fills
+ * evenly and gives each thumbnail more room to be read.
+ */
+@media (min-width: 1024px) {
+  .projects-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .project-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -900,21 +938,90 @@ h6 {
   transition: var(--transition-normal);
 }
 
+/* --- Card thumbnail --- */
+.project-thumb {
+  position: relative;
+  z-index: 1;
+  /* Reserves the correct box before the image loads, so nothing shifts.
+     The intrinsic width/height on the <img> handle the same job for
+     browsers that ignore aspect-ratio on the container. */
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--color-bg-soft);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.project-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform var(--transition-slow);
+}
+
+.project-card:hover .project-thumb img {
+  transform: scale(1.03);
+}
+
+/*
+ * The title button is the card's single click target. The ::after overlay
+ * stretches it across the whole card so the entire surface is clickable
+ * while the accessible name stays just the project title.
+ */
+.project-card-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.project-card-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+/* Base: ring the title. This is the fallback where :has() is unsupported. */
+.project-card-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Where :has() works, ring the whole card instead — it is the real target.
+   Must follow the rule above so it wins the cascade. */
+@supports selector(:has(*)) {
+  .project-card:has(.project-card-button:focus-visible) {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+  }
+
+  .project-card-button:focus-visible {
+    outline: none;
+  }
+}
+
+.project-card:hover .project-card-button {
+  color: var(--color-primary);
+}
+
 .project-card:hover {
   border-color: var(--color-border-hover);
   transform: translateY(-4px);
 }
 
+/*
+ * `featured` is a highlight, not a size change. It keeps the card on the
+ * normal grid track so the desktop row stays an even three across; spanning
+ * two columns left a hole in the second row and stretched the thumbnail to
+ * roughly twice the height of its neighbours.
+ */
 .project-card.featured {
-  grid-column: span 2;
   background: var(--color-bg-card);
   border-color: rgba(74, 144, 226, 0.3);
-}
-
-@media (max-width: 768px) {
-  .project-card.featured {
-    grid-column: span 1;
-  }
 }
 
 .project-glow {
@@ -935,9 +1042,24 @@ h6 {
 }
 
 .project-content {
-  position: relative;
+  /*
+   * Deliberately NOT position:relative. The card's click overlay is
+   * .project-card-button::after with inset:0, and it must resolve its
+   * containing block to .project-card so it covers the whole card. Any
+   * positioned ancestor in between would shrink it to that ancestor's box.
+   * z-index still applies here because this is a flex item.
+   */
+  display: flex;
+  flex-direction: column;
+  /* Fills remaining card height so the link sits on a common baseline
+     across cards of differing summary length. */
+  flex: 1;
   padding: var(--space-xl);
   z-index: 1;
+}
+
+.project-content .project-link {
+  margin-top: auto;
 }
 
 .project-header {
@@ -1005,6 +1127,129 @@ h6 {
 
 .project-link:hover .arrow {
   transform: translateX(4px);
+}
+
+.project-card:hover .project-link .arrow {
+  transform: translateX(4px);
+}
+
+/* --- Project detail modal --- */
+.project-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(5, 5, 9, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+.project-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 101;
+
+  width: min(880px, calc(100vw - 2 * var(--space-lg)));
+  max-height: calc(100vh - 2 * var(--space-xl));
+  overflow-y: auto;
+
+  padding: var(--space-2xl);
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.project-modal:focus {
+  outline: none;
+}
+
+.project-modal-close {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+
+  display: grid;
+  place-content: center;
+  width: 2rem;
+  height: 2rem;
+
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.project-modal-close:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-border-hover);
+}
+
+.project-modal-title {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+  padding-right: var(--space-2xl);
+}
+
+.project-modal-client {
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-xl);
+}
+
+.project-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.project-modal-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+  margin-bottom: var(--space-sm);
+}
+
+.project-modal-block p {
+  color: var(--color-text-muted);
+  line-height: 1.8;
+}
+
+.project-modal-images {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+@media (min-width: 640px) {
+  .project-modal-images {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.project-modal-images img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+@media (max-width: 640px) {
+  .project-modal {
+    padding: var(--space-xl);
+  }
+
+  .project-modal-title {
+    font-size: 1.375rem;
+  }
 }
 
 /* --- Skills Section --- */

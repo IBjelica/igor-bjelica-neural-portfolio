@@ -980,6 +980,16 @@ const BrainExplorer = () => {
             </button>
 
             <div id="brain-hint">Drag to rotate · Click regions to explore</div>
+            {/*
+              Every technique named here is present in this file: Three.js with
+              a GLTF model, a custom shader injected via onBeforeCompile (see
+              the aRegionFade patch), UnrealBloomPass post-processing, and a
+              raycast run once per animation frame for hover and selection.
+            */}
+            <p id="brain-tech-caption">
+              Interactive WebGL scene — Three.js, custom shaders,
+              post-processing bloom, real-time raycasting
+            </p>
           </div>
 
           <div id="brain-info-panel">

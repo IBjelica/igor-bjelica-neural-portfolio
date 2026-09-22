@@ -35,10 +35,10 @@ const Experience = () => {
             <div className="card-header">
               <div className="card-icon">🔥</div>
               <div className="card-meta">
-                <span className="card-date">Mar 2018 – Feb 2023</span>
+                <span className="card-date">Mar 2018 – Present</span>
               </div>
             </div>
-            <h3 className="card-title">CEO & Web Developer</h3>
+            <h3 className="card-title">Founder &amp; Developer</h3>
             <p className="card-company">Firefly Web Studio</p>
             <p className="card-description">
               Founded a company to gain comprehensive experience across all aspects of the project life cycle.
@@ -55,10 +55,10 @@ const Experience = () => {
             <div className="card-header">
               <div className="card-icon">🎯</div>
               <div className="card-meta">
-                <span className="card-date">Oct 2018 – Feb 2023</span>
+                <span className="card-date">Oct 2018 – Jan 2023</span>
               </div>
             </div>
-            <h3 className="card-title">Support Agent for WordPress Themes</h3>
+            <h3 className="card-title">Tier 3 Technical Support Engineer</h3>
             <p className="card-company">Qode Interactive</p>
             <p className="card-description">
               Started as Support Agent and progressively handled increasingly important development-oriented tasks.
@@ -88,6 +88,22 @@ const Experience = () => {
               <li>Web-shop development for the company</li>
               <li>Server maintenance and infrastructure improvement</li>
             </ul>
+          </article>
+
+          <article className="experience-card">
+            <div className="card-glow"></div>
+            <div className="card-header">
+              <div className="card-icon">🌱</div>
+              <div className="card-meta">
+                <span className="card-date">Jun 2016 – Jan 2017</span>
+              </div>
+            </div>
+            <h3 className="card-title">Freelance Web Developer</h3>
+            <p className="card-company">Independent</p>
+            <p className="card-description">
+              Delivered responsive websites for early clients including Avers
+              Accounting &amp; Consulting and Studio Mina.
+            </p>
           </article>
         </div>
       </div>

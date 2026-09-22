@@ -1,73 +1,133 @@
-# Welcome to your Lovable project
+# igorbjelica.com
 
-## Project info
+Personal portfolio site for Igor Bjelica, built with React, TypeScript and Three.js.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**Live:** https://igorbjelica.com
 
-## How can I edit this code?
+## Overview
 
-There are several ways of editing your application.
+A single-page portfolio with an interactive WebGL hero, a selected-work section,
+and the usual background sections (about, experience, skills, contact). It is a
+static site — no backend, no database, no API calls at runtime.
 
-**Use Lovable**
+The hero is the part worth reading the source for: a 3D brain model split into
+seven selectable anatomical regions, with hover and click handled by raycasting
+against the mesh rather than by overlaid DOM hotspots.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## The interactive hero
 
-Changes made via Lovable will be committed automatically to this repo.
+`src/components/BrainExplorer.tsx` holds the entire scene. It runs one
+`useEffect` that builds the scene, starts a render loop, and tears everything
+down on unmount.
 
-**Use your preferred IDE**
+**Region selection.** The model is a GLTF file whose seven meshes are named
+after the regions they represent (`Frontal_Lobe`, `Cerebellum`, and so on). On
+load, each mesh name is matched against a `REGION_CONFIG` map and the matching
+key is stored on `mesh.userData.regionKey`. Pointer interaction then works by
+raycasting: a ray is cast from the camera through the pointer position and the
+first mesh it hits identifies the region. Selection and hover both resolve
+through the same mechanism, so there is no separate hit-testing geometry to keep
+in sync with the model.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+**Hover feedback.** Hovering shifts a region's emissive colour toward cyan and
+raises its intensity, eased per frame toward a target rather than snapped. The
+currently selected region is excluded from hover response so that selection stays
+the strongest state on screen.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+**Soft region borders.** Because the model is cut into regions along planes, the
+seams between them would otherwise be hard straight lines. Two things soften
+them. `scripts/split-brain.mjs` offsets each cut threshold by a shared 3D noise
+value when generating the model, so borders wander instead of running ruler
+straight. It also bakes a per-vertex `_REGIONFADE` weight into each mesh, which
+the runtime reads and feeds into the material through an `onBeforeCompile` patch
+that multiplies `totalEmissiveRadiance` by that weight — so a region's glow
+falls off toward its edges instead of ending on a line.
 
-Follow these steps:
+**Lighting and post-processing.** The scene environment is a gradient generated
+into a canvas texture and passed through `PMREMGenerator`, which gives the
+materials something to reflect. Rendering goes through an `EffectComposer` chain
+of `RenderPass` → `UnrealBloomPass` → `OutputPass`; tone mapping and the sRGB
+conversion happen once, in the output pass.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+**Performance and teardown notes in the code:**
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+- The hover raycast runs at most once per animation frame, not once per
+  `pointermove` event, which can fire well above the frame rate.
+- Hover is skipped for non-mouse pointers, so a tap on a touch device does not
+  latch a region into a permanent hover state.
+- Device pixel ratio is clamped to 2 (`setPixelRatio(Math.min(dpr, 2))`).
+- Unmount disposes geometries, materials, textures, the environment render
+  target, the composer and the bloom pass, then releases the WebGL context.
+  Materials are cloned per mesh so per-region colour changes do not bleed —
+  which also means each clone has to be disposed individually.
+- The model carries no textures at all — one material, shaded entirely at
+  runtime — and ships compressed with `EXT_meshopt_compression` and
+  `KHR_mesh_quantization`, decoded by the `MeshoptDecoder` wired into the
+  loader. `@gltf-transform/cli` is the dev dependency used to produce it.
 
-# Step 3: Install the necessary dependencies.
-npm i
+Parts of this codebase, the Three.js work included, were built with substantial
+AI assistance.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+## Tech stack
+
+- **React 18** with **TypeScript**
+- **Vite 5** (build and dev server), `@vitejs/plugin-react-swc`
+- **Three.js 0.181** — GLTFLoader, OrbitControls, EffectComposer post-processing
+- **React Router 6** — routing for the index and 404 pages
+- **Tailwind CSS 3** with **shadcn/ui** (Radix primitives) for UI components
+- **TanStack Query** — installed and provider-mounted, not yet used for data
+- **ESLint 9** with `typescript-eslint`
+
+Most page styling is hand-written CSS using custom properties in
+`src/styles.css`, not Tailwind utilities. Tailwind is present for the
+`components/ui` layer.
+
+## Project structure
+
+```
+public/
+  brain-regions.glb        3D model, seven named region meshes
+scripts/
+  split-brain.mjs          Splits a source brain model into named regions,
+                           bakes the per-vertex edge-fade weight
+src/
+  components/
+    BrainExplorer.tsx      The WebGL hero — scene, interaction, teardown
+    Projects.tsx           Selected work grid and detail modals
+    About.tsx  Experience.tsx  Skills.tsx  Contact.tsx  Header.tsx  Footer.tsx
+    ui/                    shadcn/ui components (Radix + Tailwind)
+  data/
+    projects.ts            Project content, typed — the only file to edit
+                           when adding a case study
+  pages/
+    Index.tsx              Page composition and global scroll/nav behaviour
+    NotFound.tsx
+  styles.css               Design tokens and all section styling
+  index.css                Tailwind layers
 ```
 
-**Edit a file directly in GitHub**
+## Running locally
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Requires Node.js 20 or newer.
 
-**Use GitHub Codespaces**
+```sh
+npm install
+npm run dev      # dev server on http://localhost:8080
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Other scripts:
 
-## What technologies are used for this project?
+```sh
+npm run build      # production build to dist/
+npm run preview    # serve the production build
+npm run typecheck  # tsc --noEmit over app and node configs
+npm run lint       # eslint
+```
 
-This project is built with:
+No environment variables are required.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Deployment
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Pushing to `main` triggers `.github/workflows` to install, typecheck, lint,
+build, and rsync `dist/` to the production host. The lint step is set to
+`continue-on-error`, so it reports without blocking a deploy.

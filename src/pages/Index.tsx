@@ -113,8 +113,8 @@ const Index = () => {
       <Header />
       <BrainExplorer />
       <About />
+      <Projects />
       <Experience />
-      {/* <Projects /> */}
       <Skills />
       <Contact />
       <Footer />
