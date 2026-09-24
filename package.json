@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
+    "trace:brain": "node scripts/trace-brain.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
