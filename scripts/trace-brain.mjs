@@ -1,6 +1,9 @@
 /**
- * Traces `public/brain-regions.glb` into `public/brain.svg` — a flat anatomical
- * plate: one silhouette outline plus one path per visible surface fold.
+ * Traces `public/brain-regions.glb` into `src/assets/brain.svg` — a flat
+ * anatomical plate: one silhouette outline plus one path per visible fold.
+ *
+ * Output lands in `src/` rather than `public/` because the hero inlines it as
+ * markup. Serving it as a static file as well would ship the same 66 KB twice.
  *
  * The hero is a 2D line drawing, but the brain it draws is the same model the
  * old WebGL hero used. Tracing rather than redrawing keeps the anatomy honest
@@ -26,10 +29,13 @@
  *   node scripts/trace-brain.mjs
  *   node scripts/trace-brain.mjs --crease 30 --min-length 14 --res 2048
  *
- * Writes public/brain.svg, plus scripts/.debug/trace-preview.svg — open that
- * one to judge the result. It carries visible strokes and the anchor dots;
- * brain.svg deliberately carries no styling at all, because CSS drives the
- * stroke colour and width at runtime.
+ * Writes src/assets/brain.svg, plus scripts/.debug/trace-preview.svg — open
+ * that one to judge the result. It carries visible strokes and the anchor
+ * dots; brain.svg deliberately carries no styling at all, because CSS drives
+ * the stroke colour and width at runtime.
+ *
+ * Pass --profile to print the silhouette's left and right edge per scanline,
+ * which is how the label anchors in src/data/brainAnchors.ts were placed.
  */
 
 import { NodeIO } from "@gltf-transform/core";
@@ -90,7 +96,7 @@ const OPTIONS = {
 };
 
 const SOURCE = join(ROOT, "public", "brain-regions.glb");
-const OUT_SVG = join(ROOT, "public", "brain.svg");
+const OUT_SVG = join(ROOT, "src", "assets", "brain.svg");
 const DEBUG_DIR = join(ROOT, "scripts", ".debug");
 const OUT_DEBUG = join(DEBUG_DIR, "trace-preview.svg");
 
@@ -951,7 +957,32 @@ const debug = [
 
 writeFileSync(OUT_DEBUG, debug + "\n");
 
-console.log(`\nwrote     public/brain.svg (${(svg.length / 1024).toFixed(1)} KB)`);
+// `--profile` prints where the silhouette starts and ends on each scanline.
+// Leader lines are laid out by hand in src/data/nav.ts, and this is how those
+// numbers are chosen: an anchor has to sit inside the drawing, and the elbow
+// that carries its line out has to clear the edge on the correct side.
+if (args.includes("--profile")) {
+  console.log(`\nsilhouette profile, viewBox units (step 25):`);
+  console.log(`      y     left    right    width`);
+  for (let vy = 0; vy < viewHeight; vy += 25) {
+    const gy = Math.min(gridH - 1, Math.round((vy / viewHeight) * gridH));
+    let lo = -1, hi = -1;
+    for (let gx = 0; gx < gridW; gx++) {
+      if (silhouetteMask[gy * gridW + gx] === 1) {
+        if (lo < 0) lo = gx;
+        hi = gx;
+      }
+    }
+    if (lo < 0) continue;
+    const left = round(lo * gridToView);
+    const right = round(hi * gridToView);
+    console.log(
+      `  ${String(vy).padStart(5)} ${String(left).padStart(8)} ${String(right).padStart(8)} ${String(round(right - left)).padStart(8)}`
+    );
+  }
+}
+
+console.log(`\nwrote     src/assets/brain.svg (${(svg.length / 1024).toFixed(1)} KB)`);
 console.log(`wrote     scripts/.debug/trace-preview.svg  <- open this one`);
 console.log(`\nregion centroids, in viewBox units (seed for src/data/brainAnchors.ts):`);
 for (const a of anchors) {

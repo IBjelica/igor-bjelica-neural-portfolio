@@ -1,124 +1,90 @@
-import { useEffect } from "react";
-import Header from "../components/Header";
-import BrainExplorer from "../components/BrainExplorer";
-import About from "../components/About";
-import Experience from "../components/Experience";
-import Projects from "../components/Projects";
-import Skills from "../components/Skills";
-import Contact from "../components/Contact";
-import Footer from "../components/Footer";
+/**
+ * The whole site. One shell, two states.
+ *
+ * With no section open the brain is the page. Open one and the brain flies to
+ * the top-right corner, shrinks to an icon, and the section fades onto the
+ * emptied page. The icon toggles back.
+ *
+ * Both states live at real URLs, so sections are linkable and the back button
+ * returns to the brain rather than leaving the site.
+ */
+
+import { useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+
+import BrainNav from "@/components/BrainNav";
+import Contact from "@/components/sections/Contact";
+import Experiments from "@/components/sections/Experiments";
+import Projects from "@/components/sections/Projects";
+import Skills from "@/components/sections/Skills";
+import Work from "@/components/sections/Work";
+import { findLinkBySlug } from "@/data/nav";
+
+const SECTIONS: Record<string, () => JSX.Element> = {
+  "/work": Work,
+  "/skills": Skills,
+  "/projects": Projects,
+  "/experiments": Experiments,
+  "/contact": Contact,
+};
+
+const SITE_TITLE = "Igor Bjelica — Software Engineer, Web Developer";
 
 const Index = () => {
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  const link = findLinkBySlug(pathname);
+  const parked = Boolean(link);
+  const Section = link ? SECTIONS[link.slug] : null;
+
+  // Releases the boot sequence. Deferred to an animation frame so the first
+  // paint is guaranteed to be the black screen the markup ships with — set it
+  // synchronously and a fast machine can skip straight past the fade.
   useEffect(() => {
-    const cleanups: Array<() => void> = [];
-
-    // Register a listener and queue its removal, so nothing outlives the effect.
-    const on = (
-      el: Element | Window,
-      type: string,
-      handler: EventListenerOrEventListenerObject
-    ) => {
-      el.addEventListener(type, handler);
-      cleanups.push(() => el.removeEventListener(type, handler));
-    };
-
-    // Mobile menu toggle
-    const mobileMenuBtn = document.querySelector(
-      ".mobile-menu-btn"
-    ) as HTMLButtonElement | null;
-    const mainNav = document.querySelector(".main-nav") as HTMLElement | null;
-
-    if (mobileMenuBtn && mainNav) {
-      on(mobileMenuBtn, "click", () => {
-        const isOpen = mainNav.classList.toggle("open");
-        mobileMenuBtn.setAttribute("aria-expanded", isOpen.toString());
-        mobileMenuBtn.classList.toggle("open");
-      });
-
-      // Close mobile menu on link click
-      document.querySelectorAll(".main-nav a").forEach((link) => {
-        on(link, "click", () => {
-          mainNav.classList.remove("open");
-          mobileMenuBtn.classList.remove("open");
-          mobileMenuBtn.setAttribute("aria-expanded", "false");
-        });
-      });
-    }
-
-    // Header scroll effect
-    const header = document.querySelector(".site-header") as HTMLElement | null;
-
-    on(window, "scroll", () => {
-      if (window.pageYOffset > 100) {
-        header?.classList.add("scrolled");
-      } else {
-        header?.classList.remove("scrolled");
-      }
+    const raf = requestAnimationFrame(() => {
+      document.documentElement.dataset.booted = "true";
     });
-
-    // Smooth scroll with header offset
-    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-      on(anchor, "click", (e) => {
-        const href = anchor.getAttribute("href");
-        if (!href) return;
-
-        e.preventDefault();
-
-        // A bare "#" (the header and footer logos) means "back to top".
-        // It must be handled before querySelector, which throws on "#".
-        if (href === "#") {
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          return;
-        }
-
-        // Only well-formed id references are valid CSS selectors.
-        if (!/^#[A-Za-z][\w-]*$/.test(href)) return;
-
-        const target = document.querySelector(href);
-        if (!target) return;
-
-        const headerHeight = header ? header.offsetHeight : 0;
-        const targetPosition =
-          target.getBoundingClientRect().top +
-          window.pageYOffset -
-          headerHeight -
-          20; // 20px extra padding
-
-        window.scrollTo({ top: targetPosition, behavior: "smooth" });
-      });
-    });
-
-    // Intersection Observer for animations
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          entry.target.classList.toggle("in-view", entry.isIntersecting);
-        });
-      },
-      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
-    );
-
-    document.querySelectorAll(".section").forEach((section) => {
-      observer.observe(section);
-    });
-    cleanups.push(() => observer.disconnect());
-
-    return () => {
-      cleanups.forEach((cleanup) => cleanup());
-    };
+    return () => cancelAnimationFrame(raf);
   }, []);
 
+  useEffect(() => {
+    document.title = link ? `${link.label} — Igor Bjelica` : SITE_TITLE;
+  }, [link]);
+
+  // Moving focus into the section is what makes this usable by keyboard: the
+  // brain's links are gone from the tab order once parked, so focus would
+  // otherwise be stranded on a link that no longer exists.
+  useEffect(() => {
+    if (!parked) return;
+    const heading = contentRef.current?.querySelector<HTMLElement>("h1");
+    heading?.focus();
+  }, [parked, pathname]);
+
+  // Escape closes a section. Cheap to add, and the first thing anyone tries
+  // once they realise the corner icon is a toggle.
+  useEffect(() => {
+    if (!parked) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") navigate("/");
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [parked, navigate]);
+
   return (
-    <>
-      <Header />
-      <BrainExplorer />
-      <About />
-      <Projects />
-      <Experience />
-      <Skills />
-      <Contact />
-      <Footer />
-    </>
+    <main className="shell" data-parked={parked || undefined}>
+      <BrainNav parked={parked} onUnpark={() => navigate("/")} />
+
+      {Section && (
+        // Keyed by slug so switching sections replays the entry animation
+        // instead of swapping text inside an already-settled container.
+        <div ref={contentRef} className="shell__content" key={link.slug}>
+          <Section />
+        </div>
+      )}
+    </main>
   );
 };
 

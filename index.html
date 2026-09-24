@@ -3,17 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Igor Bjelica — Creative Frontend Engineer</title>
+    <title>Igor Bjelica — Software Engineer, Web Developer</title>
     <meta
       name="description"
-      content="Creative frontend engineer building interactive web experiences in WebGL, Three.js, and React. Portfolio and selected work."
+      content="Portfolio of Igor Bjelica, a web developer in Belgrade. Navigated through an anatomical drawing of a brain."
     />
     <meta name="author" content="Igor Bjelica" />
     <meta
       name="keywords"
-      content="Creative Frontend Engineer, Design Engineer, Creative Developer, Three.js, WebGL, React, Interaction Design, Motion, Portfolio"
+      content="Web Developer, Software Engineer, Frontend, React, TypeScript, Eleventy, Laravel, WordPress, Portfolio, Belgrade"
     />
-    <meta name="theme-color" content="#050509" />
+    <!-- Matches the boot screen, so the browser chrome does not flash pale
+         before the page lifts to paper. -->
+    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="light" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
@@ -24,10 +27,10 @@
     <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png" />
     <link rel="manifest" href="/site.webmanifest" />
 
-    <meta property="og:title" content="Igor Bjelica — Creative Frontend Engineer" />
+    <meta property="og:title" content="Igor Bjelica — Software Engineer, Web Developer" />
     <meta
       property="og:description"
-      content="Creative frontend engineer working in WebGL, Three.js, and React. Interactive portfolio with a real-time 3D hero."
+      content="Portfolio of Igor Bjelica, a web developer in Belgrade. Navigated through an anatomical drawing of a brain."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://igorbjelica.com" />
@@ -38,24 +41,37 @@
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="Igor Bjelica — Creative Frontend Engineer portfolio"
+      content="Igor Bjelica — portfolio"
     />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Igor Bjelica — Creative Frontend Engineer" />
+    <meta name="twitter:title" content="Igor Bjelica — Software Engineer, Web Developer" />
     <meta
       name="twitter:description"
-      content="Creative frontend engineer working in WebGL, Three.js, and React. Interactive portfolio with a real-time 3D hero."
+      content="Portfolio of Igor Bjelica, a web developer in Belgrade. Navigated through an anatomical drawing of a brain."
     />
     <meta name="twitter:image" content="https://igorbjelica.com/og-image.png" />
 
     <link rel="canonical" href="https://igorbjelica.com" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-     <link
-       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
-       rel="stylesheet"
-     />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!--
+      The page opens on black and the brain fades up out of it before the
+      background lifts to paper. That first frame has to be black before any
+      stylesheet or bundle has loaded, which is why this is inline and not in
+      styles.css. The shell releases the rest of the sequence after mount by
+      setting data-booted on this element.
+    -->
+    <style>
+      html {
+        background-color: #000000;
+      }
+    </style>
   </head>
 
   <body>
