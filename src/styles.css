@@ -22,9 +22,11 @@
   --hairline-link: rgba(23, 23, 26, 0.34);
   --hairline-note: rgba(23, 23, 26, 0.16);
 
-  /* Brain strokes, in stage units — the SVG scales, these do not. */
-  --stroke-outline: 1.6;
-  --stroke-sulci: 0.8;
+  /* Brain strokes, in BRAIN user units, so they shrink with the drawing.
+     The wide layout draws at 0.82 scale; these land on ~1.4px and ~0.7px at
+     a 1440 viewport. Change them together with WIDE in src/data/layout.ts. */
+  --stroke-outline: 1.9;
+  --stroke-sulci: 1;
   --stroke-outline-parked: 18;
   --opacity-sulci: 0.36;
   /* How far a fold is lifted above its resting value at the centre of the
@@ -862,15 +864,15 @@ img {
 
 @media (max-width: 860px) {
   :root {
-    /* The narrow layout draws the brain at 0.465 scale in a 900-unit stage,
-       so one user unit is worth about a fifth of what it is worth on desktop.
-       5.5 lands on the same ~1.1px hairline. Change this together with NARROW
-       in src/data/layout.ts.
+    /* The narrow layout draws the brain at 0.435 scale in a 900-unit stage,
+       so one user unit is worth about a quarter of what it is worth on
+       desktop. 5.8 lands on the same ~1.1px hairline. Change this together
+       with NARROW in src/data/layout.ts.
 
        --stroke-outline-parked deliberately is NOT overridden: the corner icon
        is 72px wide in both layouts, so the same user-unit value produces the
        same on-screen width either way. */
-    --stroke-outline: 5.5;
+    --stroke-outline: 5.8;
   }
 
   .brain-nav__label {

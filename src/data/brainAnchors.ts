@@ -47,26 +47,29 @@ export interface Point {
 /**
  * Anchor positions in BRAIN space.
  *
- * Five of these are the region centroids the trace script reports — the actual
- * anatomical structures. The other five are hand-placed on distinct features
- * so that ten labels spread evenly instead of clustering on seven points.
- * Every one was verified to sit inside the silhouette; `y` values are given
- * alongside the scanline that was checked.
+ * Ten points spread around the drawing. Five are the region centroids the
+ * trace script reports — the actual anatomical structures; the other five are
+ * hand-placed on distinct features, because seven centroids cannot carry ten
+ * labels without clustering. Every one was verified to sit inside the
+ * silhouette, against the scanline noted beside it.
+ *
+ * Listed in clockwise order, because that order is the point: a link and a
+ * note alternate the whole way round, so the five words that navigate are not
+ * all gathered down one side of the head. Moving a word to a different anchor
+ * breaks that alternation — and, if it crosses another word's position in the
+ * ring, makes their leader lines cross too.
  */
 export const ANCHORS: Record<AnchorId, Point> = {
-  // Left column: the real navigation.
-  work: { x: 330, y: 150 }, //  superior frontal   (scanline 150: 122..856)
-  skills: { x: 224, y: 289 }, //  Frontal_Lobe centroid
-  projects: { x: 110, y: 420 }, //  frontal pole       (scanline 425:  29..987)
-  experiments: { x: 258, y: 511 }, //  Limbic_System centroid
-  contact: { x: 421, y: 538 }, //  Temporal_Lobe centroid
-
-  // Right column: the inert notes.
-  basketball: { x: 700, y: 165 }, //  precentral        (scanline 175: 112..861)
-  family: { x: 905, y: 330 }, //  occipital         (scanline 325:  15..951)
-  music: { x: 860, y: 480 }, //  lateral occipital (scanline 475:  58..965)
-  chess: { x: 729, y: 610 }, //  Cerebellum centroid
-  anime: { x: 656, y: 745 }, //  Brain_Stem centroid (scanline 750: 630..682)
+  work: { x: 110, y: 420 }, //      frontal pole       (scanline 425:  29..987)
+  basketball: { x: 224, y: 289 }, // Frontal_Lobe centroid
+  skills: { x: 330, y: 150 }, //    superior frontal   (scanline 150: 122..856)
+  family: { x: 700, y: 165 }, //    precentral         (scanline 175: 112..861)
+  projects: { x: 905, y: 330 }, //  occipital          (scanline 325:  15..951)
+  music: { x: 860, y: 480 }, //     lateral occipital  (scanline 475:  58..965)
+  experiments: { x: 729, y: 610 }, // Cerebellum centroid
+  chess: { x: 656, y: 745 }, //     Brain_Stem centroid (scanline 750: 630..682)
+  contact: { x: 421, y: 538 }, //   Temporal_Lobe centroid
+  anime: { x: 258, y: 511 }, //     Limbic_System centroid
 };
 
 /** BRAIN space to STAGE space, for a given layout. */

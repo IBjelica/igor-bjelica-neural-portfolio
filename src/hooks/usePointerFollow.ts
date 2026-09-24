@@ -45,9 +45,9 @@ const BREATH = [
  * its resting opacity and fades out, which reads as a pale hole following the
  * cursor rather than a lit pool.
  */
-const WAKE_RADIUS = 170;
+const WAKE_RADIUS = 140;
 /** Spatial hash cell. Roughly the wake radius keeps the 3x3 probe honest. */
-const CELL = 170;
+const CELL = 140;
 /** Skip a DOM write below this change — most frames move a stroke by nothing. */
 const EPSILON = 0.012;
 

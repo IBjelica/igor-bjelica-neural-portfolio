@@ -24,10 +24,14 @@ import { useParkTransform } from "@/hooks/useParkTransform";
 import { usePointerFollow } from "@/hooks/usePointerFollow";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { ANCHORS, brainCentre, toStage, type AnchorId } from "@/data/brainAnchors";
-import { NARROW, NARROW_QUERY, WIDE, type Layout } from "@/data/layout";
+import {
+  elbowX,
+  NARROW,
+  NARROW_QUERY,
+  WIDE,
+  type Layout,
+} from "@/data/layout";
 import { NAV_LINKS, NAV_NOTES } from "@/data/nav";
-
-type Side = "left" | "right";
 
 /**
  * How long the brain is in the air, including the pause that lets the words
@@ -41,14 +45,26 @@ const FLIGHT_MS = 200 + 900;
  * into the word. The shelf is what keeps a diagonal from arriving on top of
  * the text it points at.
  */
-function leaderPath(id: AnchorId, side: Side, layout: Layout): string {
+function leaderPath(id: AnchorId, layout: Layout): string {
   const anchor = toStage(ANCHORS[id], layout);
-  const column = layout[side];
-  const labelY = layout.labelY[id];
-  const shelfEnd =
-    side === "left" ? column.labelX + 12 : column.labelX - 12;
+  const spot = layout.label[id];
+  // Stop just short of the word rather than under it.
+  const shelfEnd = spot.align === "end" ? spot.x + 12 : spot.x - 12;
 
-  return `M${anchor.x.toFixed(1)} ${anchor.y.toFixed(1)} L${column.elbowX} ${labelY} L${shelfEnd} ${labelY}`;
+  return `M${anchor.x.toFixed(1)} ${anchor.y.toFixed(1)} L${elbowX(spot, layout)} ${spot.y} L${shelfEnd} ${spot.y}`;
+}
+
+/** Positions a word by whichever edge its leader arrives at. */
+function labelStyle(id: AnchorId, layout: Layout): React.CSSProperties {
+  const spot = layout.label[id];
+  const pct = (value: number, total: number) => `${(value / total) * 100}%`;
+
+  return {
+    top: pct(spot.y, layout.stage.height),
+    ...(spot.align === "end"
+      ? { right: pct(layout.stage.width - spot.x, layout.stage.width) }
+      : { left: pct(spot.x, layout.stage.width) }),
+  };
 }
 
 interface BrainNavProps {
@@ -108,13 +124,10 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
     enabled: !parked && !flight && !reducedMotion && !narrow,
   });
 
-  const nodes: Array<{ id: AnchorId; side: Side }> = [
-    ...NAV_LINKS.map((link) => ({ id: link.id, side: "left" as const })),
-    ...NAV_NOTES.map((note) => ({ id: note.id, side: "right" as const })),
+  const nodes: Array<{ id: AnchorId; kind: "link" | "note" }> = [
+    ...NAV_LINKS.map((link) => ({ id: link.id, kind: "link" as const })),
+    ...NAV_NOTES.map((note) => ({ id: note.id, kind: "note" as const })),
   ];
-
-  /** Stage coordinates to a percentage of the figure. */
-  const pct = (value: number, total: number) => `${(value / total) * 100}%`;
 
   return (
     <div
@@ -164,9 +177,8 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
           </g>
 
           <g className="brain-nav__leaders">
-            {nodes.map(({ id, side }, index) => {
+            {nodes.map(({ id, kind }, index) => {
               const anchor = toStage(ANCHORS[id], layout);
-              const kind = side === "left" ? "link" : "note";
               return (
                 <g
                   key={id}
@@ -179,7 +191,7 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
                       dasharray value animates all ten regardless of length. */}
                   <path
                     className="brain-nav__leader"
-                    d={leaderPath(id, side, layout)}
+                    d={leaderPath(id, layout)}
                     pathLength={1}
                   />
                   <circle
@@ -200,13 +212,7 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
               key={link.id}
               to={link.slug}
               className="brain-nav__label"
-              style={{
-                right: pct(
-                  layout.stage.width - layout.left.labelX,
-                  layout.stage.width
-                ),
-                top: pct(layout.labelY[link.id], layout.stage.height),
-              }}
+              style={labelStyle(link.id, layout)}
               onMouseEnter={() => setActive(link.id)}
               onMouseLeave={() => setActive(null)}
               onFocus={() => setActive(link.id)}
@@ -225,10 +231,7 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
             <li
               key={note.id}
               className="brain-nav__note"
-              style={{
-                left: pct(layout.right.labelX, layout.stage.width),
-                top: pct(layout.labelY[note.id], layout.stage.height),
-              }}
+              style={labelStyle(note.id, layout)}
             >
               {note.label}
             </li>
