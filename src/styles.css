@@ -128,8 +128,14 @@ img {
 
 .brain-nav__figure {
   position: relative;
-  width: min(100%, calc(100svh * 16 / 9));
-  aspect-ratio: 16 / 9;
+  /* `aspect-ratio` and `--stage-ratio` are both set inline from the active
+     layout. Capping the WIDTH against the viewport height is what keeps the
+     box on screen; a `max-height` cap cannot be used, because clamping the
+     height overrides the aspect ratio and the box stops matching the stage.
+     The labels are positioned as a percentage of this box while the leader
+     lines live in the SVG's letterboxed viewBox, so the moment the two ratios
+     disagree the words slide away from the lines pointing at them. */
+  width: min(100%, calc(100svh * var(--stage-ratio, 1.7778)));
   /* Everything that flies to the corner is inside here. Transform only —
      animating the box would relayout 300+ paths on every frame. */
   transform-origin: 50% 50%;
@@ -666,6 +672,53 @@ img {
   margin-top: 0.9rem;
 }
 
+/* --- 404 --- */
+
+.notfound {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 100svh;
+  padding-inline: var(--gutter);
+  max-width: 1100px;
+  margin-inline: auto;
+}
+
+.notfound__code {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(3rem, 10vw, 7rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.notfound__text {
+  margin-top: 1rem;
+  color: var(--ink-muted);
+}
+
+.notfound__text code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.9em;
+}
+
+.notfound__back {
+  margin-top: 2rem;
+  font-family: var(--font-display);
+}
+
+.notfound__back a {
+  text-decoration: none;
+  border-bottom: 1px solid rgba(23, 23, 26, 0.3);
+  padding-bottom: 2px;
+  transition: border-color 200ms ease;
+}
+
+.notfound__back a:hover {
+  border-color: var(--ink);
+}
+
 /* ===================================================================
    Narrow viewports
 
@@ -676,28 +729,23 @@ img {
 
 @media (max-width: 860px) {
   :root {
-    --stroke-outline: 2.4;
-    --stroke-sulci: 1.1;
-    --opacity-sulci: 0.3;
-  }
+    /* The narrow layout draws the brain at 0.465 scale in a 900-unit stage,
+       so one user unit is worth about a fifth of what it is worth on desktop.
+       5.5 lands on the same ~1.1px hairline. Change this together with NARROW
+       in src/data/layout.ts.
 
-  .brain-nav__figure {
-    width: 100%;
-  }
-
-  /* Shrinks the drawing inside the stage without touching the label
-     columns, which is what opens up room for the words. */
-  .brain-nav__brain {
-    transform: scale(0.62);
-    transform-origin: 50% 50%;
+       --stroke-outline-parked deliberately is NOT overridden: the corner icon
+       is 72px wide in both layouts, so the same user-unit value produces the
+       same on-screen width either way. */
+    --stroke-outline: 5.5;
   }
 
   .brain-nav__label {
-    font-size: 0.95rem;
+    font-size: 0.75rem;
   }
 
   .brain-nav__note {
-    font-size: 0.8rem;
+    font-size: 0.7rem;
   }
 
   .role,

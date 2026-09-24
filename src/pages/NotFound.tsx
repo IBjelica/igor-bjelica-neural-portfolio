@@ -1,23 +1,33 @@
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 
 const NotFound = () => {
   const location = useLocation();
 
   useEffect(() => {
-    console.error("404 Error: User attempted to access non-existent route:", location.pathname);
+    // The boot sequence only releases from the shell, which this page is not
+    // part of — without this the 404 renders as black text on a black page.
+    document.documentElement.dataset.booted = "true";
+    document.title = "Not found — Igor Bjelica";
+  }, []);
+
+  useEffect(() => {
+    console.error(
+      "404 Error: User attempted to access non-existent route:",
+      location.pathname
+    );
   }, [location.pathname]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">404</h1>
-        <p className="mb-4 text-xl text-muted-foreground">Oops! Page not found</p>
-        <a href="/" className="text-primary underline hover:text-primary/90">
-          Return to Home
-        </a>
-      </div>
-    </div>
+    <main className="notfound">
+      <h1 className="notfound__code">404</h1>
+      <p className="notfound__text">
+        Nothing at <code>{location.pathname}</code>.
+      </p>
+      <p className="notfound__back">
+        <Link to="/">Back to the brain</Link>
+      </p>
+    </main>
   );
 };
 

@@ -1,10 +1,10 @@
 /**
  * Works out the transform that flies the brain into the top-right corner.
  *
- * Doing this in CSS alone is not possible: the stage is letterboxed to 16:9
- * inside whatever the viewport happens to be, the brain sits off-centre within
- * that stage, and the corner is a fixed pixel offset from the viewport edge —
- * so the required translation depends on three things CSS cannot combine.
+ * Doing this in CSS alone is not possible: the stage is letterboxed inside
+ * whatever the viewport happens to be, the brain sits off-centre within that
+ * stage, and the corner is a fixed pixel offset from the viewport edge — so
+ * the required translation depends on three things CSS cannot combine.
  *
  * Animating width/height/inset instead would avoid the maths but force a
  * layout and an SVG re-render on every frame of a 900ms animation, with 300+
@@ -25,7 +25,8 @@
 
 import { useCallback, useLayoutEffect, type RefObject } from "react";
 
-import { BRAIN_VIEWBOX, STAGE } from "@/data/brainAnchors";
+import { BRAIN_VIEWBOX, brainCentre } from "@/data/brainAnchors";
+import type { Layout } from "@/data/layout";
 
 /** Width of the corner icon, in CSS pixels. */
 const ICON_WIDTH = 72;
@@ -34,11 +35,10 @@ const MARGIN = 30;
 
 interface Options {
   figure: RefObject<HTMLElement>;
-  /** Where the brain's centre sits in stage units. */
-  pivot: { x: number; y: number };
+  layout: Layout;
 }
 
-export function useParkTransform({ figure, pivot }: Options) {
+export function useParkTransform({ figure, layout }: Options) {
   const measure = useCallback(() => {
     const el = figure.current;
     if (!el) return;
@@ -67,15 +67,23 @@ export function useParkTransform({ figure, pivot }: Options) {
 
     if (!rect.width || !rect.height) return;
 
-    // The drawing is narrower than the stage, so scaling to the icon width has
-    // to account for the empty label columns on either side.
-    const brainWidth = rect.width * (BRAIN_VIEWBOX.width / STAGE.width);
+    // The drawing is smaller than the stage, so scaling to the icon width has
+    // to account both for the empty label columns and for the layout's own
+    // scale factor.
+    const brainWidth =
+      rect.width *
+      ((BRAIN_VIEWBOX.width * layout.brain.scale) / layout.stage.width);
     const scale = ICON_WIDTH / brainWidth;
 
-    const centre = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    const centre = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+
+    const stageCentre = brainCentre(layout);
     const brain = {
-      x: rect.left + rect.width * (pivot.x / STAGE.width),
-      y: rect.top + rect.height * (pivot.y / STAGE.height),
+      x: rect.left + rect.width * (stageCentre.x / layout.stage.width),
+      y: rect.top + rect.height * (stageCentre.y / layout.stage.height),
     };
 
     const iconHeight = ICON_WIDTH * (BRAIN_VIEWBOX.height / BRAIN_VIEWBOX.width);
@@ -93,7 +101,7 @@ export function useParkTransform({ figure, pivot }: Options) {
       `${(target.y - centre.y - scale * (brain.y - centre.y)).toFixed(1)}px`
     );
     el.style.setProperty("--park-scale", scale.toFixed(4));
-  }, [figure, pivot]);
+  }, [figure, layout]);
 
   // Layout effect, not effect: the custom properties have to be in place
   // before the first paint, or a section loaded directly shows one frame of

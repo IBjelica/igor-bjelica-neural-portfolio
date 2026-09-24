@@ -199,35 +199,33 @@ export const projects: Project[] = [
     title: "igorbjelica.com",
     client: "Personal project",
     summary:
-      "This site. An interactive WebGL brain you can rotate and click to explore, built in Three.js.",
-    tech: ["React", "TypeScript", "Three.js", "Vite"],
+      "This site. An anatomical drawing of a brain, traced from a 3D model, that works as the navigation.",
+    tech: ["React", "TypeScript", "SVG", "Vite"],
     thumbnail: {
       src: "/work/portfolio-thumb.jpg",
-      alt: "A glowing blue anatomical brain rendered in 3D against a dark starfield, with a panel inviting the visitor to click a region.",
+      alt: "A brain drawn in thin black lines on off-white paper, with hairlines running out to single-word labels.",
       ...SHOT,
     },
     problem:
-      "A portfolio that reads like a CV gives a studio nothing to judge craft from. I wanted the first thing a visitor meets to be something running, interactive and unmistakably built rather than described.",
+      "A portfolio that reads like a CV gives a studio nothing to judge craft from. I wanted the first thing a visitor meets to be something built rather than described — and I wanted the navigation itself to be the thing, not a menu bar above it.",
     role:
-      "I built the hero as a Three.js scene: a GLTF brain model split into selectable regions, picked with a raycaster so clicking a region selects it and dims the others. Lighting comes from a PMREM-generated environment, the surface material is extended through onBeforeCompile to inject custom shader code, and a bloom pass runs through EffectComposer for the glow. A generated particle field sits behind the model. Pixel ratio is clamped to 2 so high-density displays do not pay for more than they gain, and geometries, materials and textures are explicitly disposed on teardown, since releasing the WebGL context alone does not free GPU memory.",
+      "The hero is a brain drawn as an anatomical plate, with leader lines running from points on the anatomy out to five words that are the entire navigation. Five more words sit on the same diagram as notes and do nothing, which is the joke. Clicking a word flies the drawing into the top-right corner, where it shrinks into an icon that toggles it back. The drawing is not hand-authored: a build-time script traces a GLTF brain model — orthographic projection, silhouette from a rasterized coverage grid, sulci from crease and silhouette edges with z-buffer hidden-line removal — and emits the SVG plus the anchor coordinates. The brain reacts to the pointer by chasing it with two copies of the cursor position lerped at different rates, driving the folds by the difference between them so they trail the outline and settle when it stops; folds near the cursor darken on a distance falloff. An earlier version of this site rendered the same model live in Three.js with bloom and a particle field. Tracing it instead took WebGL out of the bundle entirely.",
     stack: [
       "React",
       "TypeScript",
-      "Three.js",
-      "GLSL (via onBeforeCompile)",
+      "SVG",
       "Vite",
-      "Tailwind CSS",
-      "Radix UI",
+      "@gltf-transform (build-time tracing)",
     ],
     images: [
       {
         src: "/work/portfolio-01.png",
-        alt: "The About section on a near-black background: a short biography on the left, a grid of core technology chips on the right.",
+        alt: "The Work section on off-white paper: employment history set as a two-column list, with the brain reduced to a small outline icon in the top-right corner.",
         ...SHOT,
       },
       {
         src: "/work/portfolio-02.jpg",
-        alt: "The same brain with the frontal lobe selected: that region lit bright white while the rest dims, and a panel naming the region alongside its description and tags.",
+        alt: "The full hero: a brain in thin black line art, with Work, Skills, Projects, Experiments and Contact hung off hairlines to the left and Basketball, Family, Music, Chess and Anime to the right.",
         ...SHOT,
       },
     ],

@@ -3,14 +3,16 @@
  *
  * Two coordinate spaces are in play and mixing them is the easy mistake:
  *
- *   BRAIN space  — `public/brain.svg`'s own viewBox, 1000 x 825. Produced by
- *                  `scripts/trace-brain.mjs` and only valid for the SVG that
- *                  run generated.
- *   STAGE space  — the hero's viewBox, 1600 x 900. Wider than the brain so the
- *                  labels have somewhere to live on either side.
+ *   BRAIN space  — `src/assets/brain.svg`'s own viewBox, 1000 x 825. Produced
+ *                  by `scripts/trace-brain.mjs` and only valid for the SVG
+ *                  that run generated.
+ *   STAGE space  — the hero's viewBox. Bigger than the brain so the labels
+ *                  have somewhere to live. Its size and the brain's placement
+ *                  inside it depend on the shape of the screen; both live in
+ *                  `layout.ts`.
  *
- * `BRAIN_ORIGIN` is where the brain sits inside the stage. Anchors below are
- * written in BRAIN space so they travel with the drawing; `toStage` converts.
+ * Anchors below are written in BRAIN space so they travel with the drawing and
+ * survive a change of layout. `toStage` converts, given a layout.
  *
  * To re-derive any of these numbers after changing the trace:
  *
@@ -21,14 +23,9 @@
  * to confirm it lands inside the drawing.
  */
 
-export const BRAIN_VIEWBOX = { width: 1000, height: 825 } as const;
-export const STAGE = { width: 1600, height: 900 } as const;
+import type { Layout } from "./layout";
 
-/**
- * Leaves a 300-unit margin on both sides for labels, and centres the brain
- * vertically (900 - 825 = 75, halved).
- */
-export const BRAIN_ORIGIN = { x: 300, y: 38 } as const;
+export const BRAIN_VIEWBOX = { width: 1000, height: 825 } as const;
 
 export type AnchorId =
   | "work"
@@ -72,10 +69,18 @@ export const ANCHORS: Record<AnchorId, Point> = {
   anime: { x: 656, y: 745 }, //  Brain_Stem centroid (scanline 750: 630..682)
 };
 
-/** BRAIN space to STAGE space. */
-export function toStage(point: Point): Point {
+/** BRAIN space to STAGE space, for a given layout. */
+export function toStage(point: Point, layout: Layout): Point {
   return {
-    x: point.x + BRAIN_ORIGIN.x,
-    y: point.y + BRAIN_ORIGIN.y,
+    x: point.x * layout.brain.scale + layout.brain.x,
+    y: point.y * layout.brain.scale + layout.brain.y,
   };
+}
+
+/** Centre of the drawing in STAGE space — the pivot for tilt and for parking. */
+export function brainCentre(layout: Layout): Point {
+  return toStage(
+    { x: BRAIN_VIEWBOX.width / 2, y: BRAIN_VIEWBOX.height / 2 },
+    layout
+  );
 }

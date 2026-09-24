@@ -7,8 +7,8 @@
  * rendering — all of which are painful inside `<foreignObject>` and worse
  * inside `<text>`.
  *
- * The two layers stay registered because the wrapper is locked to the stage's
- * 16:9 aspect ratio, so a stage coordinate maps to a percentage of the box and
+ * The two layers stay registered because the figure is locked to the stage's
+ * aspect ratio, so a stage coordinate maps to a percentage of the box and
  * nothing drifts when the viewport changes.
  *
  * Five words navigate. Five are notes: lighter, hung off thinner lines, and
@@ -19,24 +19,13 @@ import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { OUTLINE_PATHS, SULCI_PATHS } from "@/lib/brainArt";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useParkTransform } from "@/hooks/useParkTransform";
 import { usePointerFollow } from "@/hooks/usePointerFollow";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import {
-  ANCHORS,
-  BRAIN_ORIGIN,
-  BRAIN_VIEWBOX,
-  STAGE,
-  toStage,
-  type AnchorId,
-} from "@/data/brainAnchors";
-import { COLUMN, NAV_LINKS, NAV_NOTES } from "@/data/nav";
-
-/** Rotation centre: the middle of the drawing, in stage units. */
-const PIVOT = {
-  x: BRAIN_ORIGIN.x + BRAIN_VIEWBOX.width / 2,
-  y: BRAIN_ORIGIN.y + BRAIN_VIEWBOX.height / 2,
-};
+import { ANCHORS, brainCentre, toStage, type AnchorId } from "@/data/brainAnchors";
+import { NARROW, NARROW_QUERY, WIDE, type Layout } from "@/data/layout";
+import { NAV_LINKS, NAV_NOTES } from "@/data/nav";
 
 type Side = "left" | "right";
 
@@ -45,16 +34,15 @@ type Side = "left" | "right";
  * into the word. The shelf is what keeps a diagonal from arriving on top of
  * the text it points at.
  */
-function leaderPath(id: AnchorId, labelY: number, side: Side): string {
-  const anchor = toStage(ANCHORS[id]);
-  const column = COLUMN[side];
-  const shelfEnd = side === "left" ? column.labelX + 12 : column.labelX - 12;
+function leaderPath(id: AnchorId, side: Side, layout: Layout): string {
+  const anchor = toStage(ANCHORS[id], layout);
+  const column = layout[side];
+  const labelY = layout.labelY[id];
+  const shelfEnd =
+    side === "left" ? column.labelX + 12 : column.labelX - 12;
 
-  return `M${anchor.x} ${anchor.y} L${column.elbowX} ${labelY} L${shelfEnd} ${labelY}`;
+  return `M${anchor.x.toFixed(1)} ${anchor.y.toFixed(1)} L${column.elbowX} ${labelY} L${shelfEnd} ${labelY}`;
 }
-
-/** Stage coordinates to a percentage of the wrapper. */
-const pct = (value: number, total: number) => `${(value / total) * 100}%`;
 
 interface BrainNavProps {
   /** True once a section is open and the brain has flown to the corner. */
@@ -73,63 +61,77 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
   // same leader line light up that a mouse user does.
   const [active, setActive] = useState<AnchorId | null>(null);
 
+  const narrow = useMediaQuery(NARROW_QUERY);
+  const layout = narrow ? NARROW : WIDE;
   const reducedMotion = usePrefersReducedMotion();
 
-  useParkTransform({ figure: figureRef, pivot: PIVOT });
+  const centre = brainCentre(layout);
+
+  useParkTransform({ figure: figureRef, layout });
 
   usePointerFollow({
     stage: stageRef,
     brain: brainRef,
     sulci: sulciRef,
-    pivot: PIVOT,
-    enabled: !parked && !reducedMotion,
+    pivot: centre,
+    // Nothing to follow on a touch device, and the narrow layout hides the
+    // folds that half the effect works on.
+    enabled: !parked && !reducedMotion && !narrow,
   });
 
-  const nodes: Array<{ id: AnchorId; labelY: number; side: Side }> = [
-    ...NAV_LINKS.map((link) => ({
-      id: link.id,
-      labelY: link.labelY,
-      side: "left" as const,
-    })),
-    ...NAV_NOTES.map((note) => ({
-      id: note.id,
-      labelY: note.labelY,
-      side: "right" as const,
-    })),
+  const nodes: Array<{ id: AnchorId; side: Side }> = [
+    ...NAV_LINKS.map((link) => ({ id: link.id, side: "left" as const })),
+    ...NAV_NOTES.map((note) => ({ id: note.id, side: "right" as const })),
   ];
+
+  /** Stage coordinates to a percentage of the figure. */
+  const pct = (value: number, total: number) => `${(value / total) * 100}%`;
 
   return (
     <div className="brain-nav" data-parked={parked || undefined}>
       {/* Everything that flies to the corner lives in the figure, so one
           transform carries the drawing and its labels together. The toggle
           button sits outside it, at a fixed size. */}
-      <div ref={figureRef} className="brain-nav__figure">
+      <div
+        ref={figureRef}
+        className="brain-nav__figure"
+        style={{
+          aspectRatio: `${layout.stage.width} / ${layout.stage.height}`,
+          // CSS caps the width against viewport height using this, so the box
+          // can never be forced off-ratio. See the note in styles.css.
+          ["--stage-ratio" as string]: layout.stage.width / layout.stage.height,
+        }}
+      >
         <svg
           ref={stageRef}
           className="brain-nav__stage"
-          viewBox={`0 0 ${STAGE.width} ${STAGE.height}`}
+          viewBox={`0 0 ${layout.stage.width} ${layout.stage.height}`}
           preserveAspectRatio="xMidYMid meet"
           aria-hidden="true"
           focusable="false"
         >
           <g ref={brainRef} className="brain-nav__brain">
-            <g transform={`translate(${BRAIN_ORIGIN.x} ${BRAIN_ORIGIN.y})`}>
+            <g
+              transform={`translate(${layout.brain.x} ${layout.brain.y}) scale(${layout.brain.scale})`}
+            >
               <g className="brain-nav__outline">
                 {OUTLINE_PATHS.map((d, i) => (
                   <path key={i} d={d} />
                 ))}
               </g>
-              <g ref={sulciRef} className="brain-nav__sulci">
-                {SULCI_PATHS.map((d, i) => (
-                  <path key={i} d={d} />
-                ))}
-              </g>
+              {layout.showSulci && (
+                <g ref={sulciRef} className="brain-nav__sulci">
+                  {SULCI_PATHS.map((d, i) => (
+                    <path key={i} d={d} />
+                  ))}
+                </g>
+              )}
             </g>
           </g>
 
           <g className="brain-nav__leaders">
-            {nodes.map(({ id, labelY, side }, index) => {
-              const anchor = toStage(ANCHORS[id]);
+            {nodes.map(({ id, side }, index) => {
+              const anchor = toStage(ANCHORS[id], layout);
               const kind = side === "left" ? "link" : "note";
               return (
                 <g
@@ -140,10 +142,10 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
                   style={{ ["--leader-index" as string]: index }}
                 >
                   {/* pathLength normalises every line to 1 unit, so one
-                    dasharray value animates all ten regardless of length. */}
+                      dasharray value animates all ten regardless of length. */}
                   <path
                     className="brain-nav__leader"
-                    d={leaderPath(id, labelY, side)}
+                    d={leaderPath(id, side, layout)}
                     pathLength={1}
                   />
                   <circle
@@ -165,8 +167,11 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
               to={link.slug}
               className="brain-nav__label"
               style={{
-                right: pct(STAGE.width - COLUMN.left.labelX, STAGE.width),
-                top: pct(link.labelY, STAGE.height),
+                right: pct(
+                  layout.stage.width - layout.left.labelX,
+                  layout.stage.width
+                ),
+                top: pct(layout.labelY[link.id], layout.stage.height),
               }}
               onMouseEnter={() => setActive(link.id)}
               onMouseLeave={() => setActive(null)}
@@ -180,15 +185,15 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
         </nav>
 
         {/* Not links, not buttons, not focusable, and not announced. They are
-          annotations on a diagram — the same status as the sulci. */}
+            annotations on a diagram — the same status as the sulci. */}
         <ul className="brain-nav__notes" aria-hidden="true">
           {NAV_NOTES.map((note) => (
             <li
               key={note.id}
               className="brain-nav__note"
               style={{
-                left: pct(COLUMN.right.labelX, STAGE.width),
-                top: pct(note.labelY, STAGE.height),
+                left: pct(layout.right.labelX, layout.stage.width),
+                top: pct(layout.labelY[note.id], layout.stage.height),
               }}
             >
               {note.label}
