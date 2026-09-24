@@ -36,12 +36,18 @@ const BREATH = [
   { speed: 0.23, amplitude: 1.6 },
 ];
 
-/** Wake radius in stage units, and how far the effect can push a stroke. */
-const WAKE_RADIUS = 150;
-const WAKE_OPACITY = 0.55;
-const WAKE_WIDTH = 0.7;
+/**
+ * Wake radius, in stage units.
+ *
+ * How hard the wake hits is NOT here — the loop writes a 0..1 `--wake` per
+ * fold and styles.css composes it with the resting stroke values. Writing
+ * absolute values from here instead means a fold at low intensity lands below
+ * its resting opacity and fades out, which reads as a pale hole following the
+ * cursor rather than a lit pool.
+ */
+const WAKE_RADIUS = 170;
 /** Spatial hash cell. Roughly the wake radius keeps the 3x3 probe honest. */
-const CELL = 150;
+const CELL = 170;
 /** Skip a DOM write below this change — most frames move a stroke by nothing. */
 const EPSILON = 0.012;
 
@@ -54,6 +60,15 @@ interface Options {
   sulci: RefObject<SVGGElement>;
   /** Centre of rotation, in stage units. */
   pivot: { x: number; y: number };
+  /**
+   * Placement of the drawing inside the stage.
+   *
+   * Needed because `getPointAtLength` reports a point in the path's OWN user
+   * space — which is BRAIN space, inside the group that positions and scales
+   * the drawing — while the cursor arrives in STAGE space. Comparing the two
+   * directly puts the wake a whole brain-origin away from the pointer.
+   */
+  placement: { x: number; y: number; scale: number };
   /** False while the brain is parked in the corner, or under reduced motion. */
   enabled: boolean;
 }
@@ -63,25 +78,30 @@ export function usePointerFollow({
   brain,
   sulci,
   pivot,
+  placement,
   enabled,
 }: Options) {
   // Kept in a ref so changing it cannot restart the effect mid-gesture.
   const pivotRef = useRef(pivot);
   pivotRef.current = pivot;
 
+  const { x: originX, y: originY, scale } = placement;
+
   useEffect(() => {
     const stageEl = stage.current;
     const brainEl = brain.current;
+    // Optional: layouts that hide the folds render no sulci group. The drift
+    // still has to work without it.
     const sulciEl = sulci.current;
-    if (!stageEl || !brainEl || !sulciEl) return;
+    if (!stageEl || !brainEl) return;
 
     if (!enabled) {
       brainEl.removeAttribute("transform");
-      sulciEl.removeAttribute("transform");
+      sulciEl?.removeAttribute("transform");
       return;
     }
 
-    const paths = Array.from(sulciEl.querySelectorAll("path"));
+    const paths = sulciEl ? Array.from(sulciEl.querySelectorAll("path")) : [];
 
     // --- Spatial hash over the folds ---------------------------------------
     // Sampling three points per path rather than one stops a long fold from
@@ -95,7 +115,11 @@ export function usePointerFollow({
         const length = path.getTotalLength();
         const points = [0, 0.5, 1].map((t) => {
           const point = path.getPointAtLength(length * t);
-          return { x: point.x, y: point.y };
+          // BRAIN space to STAGE space, to match the cursor.
+          return {
+            x: point.x * scale + originX,
+            y: point.y * scale + originY,
+          };
         });
 
         for (const point of points) {
@@ -178,7 +202,7 @@ export function usePointerFollow({
 
       // The difference between the two chase rates is a velocity in all but
       // name: large mid-gesture, zero at rest.
-      sulciEl.setAttribute(
+      sulciEl?.setAttribute(
         "transform",
         `translate(${((fast.x - slow.x) * TRAIL).toFixed(2)} ${(
           (fast.y - slow.y) *
@@ -215,9 +239,7 @@ export function usePointerFollow({
 
             if (Math.abs(next - current) > EPSILON) {
               lit.set(index, next);
-              const style = paths[index].style;
-              style.strokeOpacity = String(next * WAKE_OPACITY);
-              style.strokeWidth = next > 0 ? `${next * WAKE_WIDTH}` : "";
+              paths[index].style.setProperty("--wake", next.toFixed(3));
             }
           }
         }
@@ -226,15 +248,12 @@ export function usePointerFollow({
       for (const [index, value] of lit) {
         if (touched.has(index)) continue;
         const next = value * 0.85;
-        const style = paths[index].style;
         if (next < EPSILON) {
           lit.delete(index);
-          style.strokeOpacity = "";
-          style.strokeWidth = "";
+          paths[index].style.removeProperty("--wake");
         } else {
           lit.set(index, next);
-          style.strokeOpacity = String(next * WAKE_OPACITY);
-          style.strokeWidth = `${next * WAKE_WIDTH}`;
+          paths[index].style.setProperty("--wake", next.toFixed(3));
         }
       }
 
@@ -251,12 +270,9 @@ export function usePointerFollow({
 
       // Inline styles written by the loop outlive it otherwise, leaving a
       // handful of folds frozen mid-glow.
-      for (const path of paths) {
-        path.style.strokeOpacity = "";
-        path.style.strokeWidth = "";
-      }
+      for (const path of paths) path.style.removeProperty("--wake");
       brainEl.removeAttribute("transform");
-      sulciEl.removeAttribute("transform");
+      sulciEl?.removeAttribute("transform");
     };
-  }, [stage, brain, sulci, enabled]);
+  }, [stage, brain, sulci, enabled, originX, originY, scale]);
 }

@@ -15,7 +15,7 @@
  * `aria-hidden`, so nobody is invited to click a thing that does nothing.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { OUTLINE_PATHS, SULCI_PATHS } from "@/lib/brainArt";
@@ -28,6 +28,13 @@ import { NARROW, NARROW_QUERY, WIDE, type Layout } from "@/data/layout";
 import { NAV_LINKS, NAV_NOTES } from "@/data/nav";
 
 type Side = "left" | "right";
+
+/**
+ * How long the brain is in the air, including the pause that lets the words
+ * clear out first. Must match --park-delay + --park-duration in styles.css:
+ * the class is what drives the keyframes, and it has to outlast them.
+ */
+const FLIGHT_MS = 200 + 900;
 
 /**
  * Anchor, then a straight run out to the elbow, then a short horizontal shelf
@@ -67,6 +74,26 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
 
   const centre = brainCentre(layout);
 
+  // Which way the brain is travelling, or null when it is at rest. Drives the
+  // keyframes; a plain transition could only move it in a straight line.
+  const [flight, setFlight] = useState<"parking" | "unparking" | null>(null);
+  const wasParked = useRef(parked);
+
+  useEffect(() => {
+    if (wasParked.current === parked) return;
+    wasParked.current = parked;
+
+    // Reduced motion gets the destination, not the journey.
+    if (reducedMotion) {
+      setFlight(null);
+      return;
+    }
+
+    setFlight(parked ? "parking" : "unparking");
+    const timer = window.setTimeout(() => setFlight(null), FLIGHT_MS);
+    return () => window.clearTimeout(timer);
+  }, [parked, reducedMotion]);
+
   useParkTransform({ figure: figureRef, layout });
 
   usePointerFollow({
@@ -74,9 +101,11 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
     brain: brainRef,
     sulci: sulciRef,
     pivot: centre,
+    placement: layout.brain,
     // Nothing to follow on a touch device, and the narrow layout hides the
-    // folds that half the effect works on.
-    enabled: !parked && !reducedMotion && !narrow,
+    // folds that half the effect works on. Also held off mid-flight, so the
+    // loop is not writing a transform the keyframes are already animating.
+    enabled: !parked && !flight && !reducedMotion && !narrow,
   });
 
   const nodes: Array<{ id: AnchorId; side: Side }> = [
@@ -88,7 +117,11 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
   const pct = (value: number, total: number) => `${(value / total) * 100}%`;
 
   return (
-    <div className="brain-nav" data-parked={parked || undefined}>
+    <div
+      className="brain-nav"
+      data-parked={parked || undefined}
+      data-flight={flight || undefined}
+    >
       {/* Everything that flies to the corner lives in the figure, so one
           transform carries the drawing and its labels together. The toggle
           button sits outside it, at a fixed size. */}

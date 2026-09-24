@@ -27,6 +27,10 @@
   --stroke-sulci: 0.8;
   --stroke-outline-parked: 18;
   --opacity-sulci: 0.36;
+  /* How far a fold is lifted above its resting value at the centre of the
+     pointer's wake. Added to the values above, never substituted for them. */
+  --wake-opacity: 0.5;
+  --wake-width: 0.9;
 
   /* --- Type --- */
   --font-display: "Space Grotesk", system-ui, sans-serif;
@@ -44,6 +48,10 @@
   --boot-fade: 1200ms;
   --boot-lift: 800ms;
   --park-duration: 900ms;
+  /* The beat before the brain moves, so the words leave first. */
+  --park-delay: 200ms;
+  /* Viewing distance for the flight. Lower exaggerates the swing. */
+  --park-perspective: 1500px;
 }
 
 /* --- Reset --- */
@@ -145,7 +153,9 @@ img {
   /* Everything that flies to the corner is inside here. Transform only —
      animating the box would relayout 300+ paths on every frame. */
   transform-origin: 50% 50%;
-  transition: transform var(--park-duration) var(--ease-brain);
+  /* No transform transition: the flight is keyframed (see below), and a
+     transition here would also animate the resting fallback when a section
+     URL is opened directly. */
   will-change: transform;
 
   /* Strokes inherit this.
@@ -201,10 +211,18 @@ img {
 .brain-nav__sulci path {
   fill: none;
   stroke: currentColor;
-  stroke-width: var(--stroke-sulci);
-  stroke-opacity: var(--opacity-sulci);
   stroke-linecap: round;
   stroke-linejoin: round;
+
+  /* `--wake` is 0..1, written per fold by usePointerFollow as the pointer
+     passes. It is composed with the resting values here rather than replacing
+     them from JS: setting stroke-opacity outright means a fold at low
+     intensity lands BELOW the resting 0.36 and fades out, so the cursor
+     punches a pale hole in the drawing instead of lighting a pool in it. */
+  stroke-width: calc(var(--stroke-sulci) + var(--wake, 0) * var(--wake-width));
+  stroke-opacity: calc(
+    var(--opacity-sulci) + var(--wake, 0) * var(--wake-opacity)
+  );
 }
 
 /* --- Leader lines --- */
@@ -334,11 +352,104 @@ img {
    Parked — the brain as a corner icon
    =================================================================== */
 
+/* The resting parked state. The keyframes below end on exactly this, so when
+   the flight class is dropped the element does not jump. */
 .brain-nav[data-parked] .brain-nav__figure {
   transform: translate(var(--park-x, 0), var(--park-y, 0))
     scale(var(--park-scale, 0.08));
-  /* Words clear out first, then the drawing moves. */
-  transition-delay: 200ms;
+}
+
+/* --- The flight ---
+   A transition can only move the brain along a straight line at a constant
+   attitude, which reads as a slide. These carry it along an arc instead:
+   rising faster than it travels sideways, swinging on two axes, and pushed
+   toward the viewer at the midpoint so perspective swells it before it
+   settles. Same idea as the pointer drift, at a larger amplitude.
+
+   The function list is identical in every keyframe — perspective, translate3d,
+   rotateX, rotateY, scale — because transforms only interpolate component-wise
+   when their lists match. Mismatched lists fall back to matrix interpolation,
+   which takes the short way through and loses the arc. */
+
+.brain-nav[data-flight="parking"] .brain-nav__figure {
+  /* The delay is the beat where the words clear out before anything moves. */
+  animation: brain-park var(--park-duration) var(--ease-brain) var(--park-delay)
+    both;
+}
+
+.brain-nav[data-flight="unparking"] .brain-nav__figure {
+  animation: brain-unpark var(--park-duration) var(--ease-brain) both;
+}
+
+@keyframes brain-park {
+  from {
+    transform: perspective(var(--park-perspective)) translate3d(0, 0, 0)
+      rotateX(0deg) rotateY(0deg) scale(1);
+  }
+  45% {
+    transform: perspective(var(--park-perspective))
+      translate3d(calc(var(--park-x) * 0.4), calc(var(--park-y) * 0.55), 140px)
+      rotateX(9deg) rotateY(-20deg)
+      scale(calc(0.4 + var(--park-scale) * 0.6));
+  }
+  to {
+    transform: perspective(var(--park-perspective))
+      translate3d(var(--park-x), var(--park-y), 0) rotateX(0deg) rotateY(0deg)
+      scale(var(--park-scale));
+  }
+}
+
+@keyframes brain-unpark {
+  from {
+    transform: perspective(var(--park-perspective))
+      translate3d(var(--park-x), var(--park-y), 0) rotateX(0deg) rotateY(0deg)
+      scale(var(--park-scale));
+  }
+  /* Later waypoint and the opposite lean, so coming back reads as a return
+     rather than as the same move played backwards. */
+  55% {
+    transform: perspective(var(--park-perspective))
+      translate3d(calc(var(--park-x) * 0.4), calc(var(--park-y) * 0.55), 140px)
+      rotateX(-8deg) rotateY(18deg)
+      scale(calc(0.4 + var(--park-scale) * 0.6));
+  }
+  to {
+    transform: perspective(var(--park-perspective)) translate3d(0, 0, 0)
+      rotateX(0deg) rotateY(0deg) scale(1);
+  }
+}
+
+/* The folds lag the outline through the turn, the same way they lag it under
+   the pointer — the detail that stops the drawing reading as one flat sticker
+   being dragged across the screen. */
+.brain-nav[data-flight="parking"] .brain-nav__sulci {
+  animation: sulci-trail-out var(--park-duration) var(--ease-brain)
+    var(--park-delay) both;
+}
+
+.brain-nav[data-flight="unparking"] .brain-nav__sulci {
+  animation: sulci-trail-back var(--park-duration) var(--ease-brain) both;
+}
+
+@keyframes sulci-trail-out {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  38% {
+    /* Down and left — opposite the direction of travel. */
+    transform: translate(-30px, 20px);
+  }
+}
+
+@keyframes sulci-trail-back {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  38% {
+    transform: translate(26px, -17px);
+  }
 }
 
 .brain-nav[data-parked] .brain-nav__label,
@@ -791,6 +902,7 @@ img {
 @media (prefers-reduced-motion: reduce) {
   html,
   .brain-nav__figure,
+  .brain-nav__sulci,
   .brain-nav__brain,
   .brain-nav__leader,
   .brain-nav__anchor,
