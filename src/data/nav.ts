@@ -45,5 +45,13 @@ export const NAV_NOTES: NavNode[] = [
 ];
 
 export function findLinkBySlug(pathname: string): NavLink | undefined {
-  return NAV_LINKS.find((link) => link.slug === pathname);
+  // Trailing slashes have to match too. `public/work/` is a real directory —
+  // it holds the case-study screenshots — and static hosts redirect a request
+  // for /work to /work/ when a directory of that name exists. React Router
+  // still matches the route, so the shell renders; an exact comparison here
+  // would then find no link, decide nothing is open, and show the brain over
+  // an empty page.
+  const normalised =
+    pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  return NAV_LINKS.find((link) => link.slug === normalised);
 }

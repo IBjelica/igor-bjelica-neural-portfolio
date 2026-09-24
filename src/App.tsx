@@ -5,7 +5,9 @@ import NotFound from "./pages/NotFound";
 import { NAV_LINKS } from "./data/nav";
 
 const App = () => (
-  <BrowserRouter>
+  // The Pages preview lives under a repository sub-path, so the router has to
+  // know where the app starts. Vite reports "/" for the production build.
+  <BrowserRouter basename={import.meta.env.BASE_URL}>
     <Routes>
       {/* Every section renders the same shell. The shell reads the path and
           decides whether the brain is the page or is parked in the corner

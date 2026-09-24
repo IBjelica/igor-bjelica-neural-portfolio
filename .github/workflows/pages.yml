@@ -1,0 +1,72 @@
+name: Preview on GitHub Pages
+
+# A preview of the redesign, served from a repository sub-path at
+# https://ibjelica.github.io/igor-bjelica-neural-portfolio/
+#
+# Deliberately NOT triggered by main. Pushing to main fires deploy.yml, which
+# rsyncs to HawkHost and replaces igorbjelica.com — this workflow exists so the
+# redesign can be looked at without that happening.
+on:
+  push:
+    branches: ["brain-nav-redesign"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time. `cancel-in-progress: false` so a run that is already
+# publishing is allowed to finish rather than leaving the site half-written.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm run lint
+        continue-on-error: true
+
+      - name: Build for the sub-path
+        # Switches vite.config.ts to the Pages base and adds a noindex, so the
+        # preview does not compete with igorbjelica.com in search.
+        env:
+          GITHUB_PAGES: "true"
+        run: npm run build
+
+      - name: Add SPA fallback
+        # Pages serves static files only — there is no equivalent of the
+        # try_files rule in nginx.conf. Without this, every route except the
+        # root 404s on refresh or on a shared link, because /work is a client
+        # route with no file behind it. Pages serves 404.html for unknown
+        # paths, so shipping the app there hands the URL to the router.
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -5,6 +5,7 @@
  */
 
 import SectionShell from "./SectionShell";
+import { asset } from "@/lib/asset";
 import { projects } from "@/data/projects";
 
 const Projects = () => (
@@ -39,7 +40,7 @@ const Projects = () => (
             {project.images.map((image) => (
               <figure key={image.src} className="project__shot">
                 <img
-                  src={image.src}
+                  src={asset(image.src)}
                   alt={image.alt}
                   width={image.width}
                   height={image.height}
