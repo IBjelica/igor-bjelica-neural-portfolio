@@ -30,7 +30,7 @@ const Contact = () => (
           Belgrade, Serbia, and currently available for projects.
         </p>
         <p>
-          I'm always open to discussing new projects, creative ideas, or
+          I’m always open to discussing new projects, creative ideas, or
           opportunities to be part of your vision.
         </p>
       </div>

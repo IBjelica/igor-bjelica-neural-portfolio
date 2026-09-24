@@ -1,7 +1,7 @@
 /**
  * Employment history, shown under Work.
  *
- * Lifted verbatim from the previous site's Experience section — the copy was
+ * Lifted verbatim from the previous site’s Experience section — the copy was
  * already right, only its presentation changes. Edit here, not in the
  * component.
  */

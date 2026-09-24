@@ -94,6 +94,7 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
           button sits outside it, at a fixed size. */}
       <div
         ref={figureRef}
+        id="brain-figure"
         className="brain-nav__figure"
         style={{
           aspectRatio: `${layout.stage.width} / ${layout.stage.height}`,
@@ -207,9 +208,10 @@ const BrainNav = ({ parked, onUnpark }: BrainNavProps) => {
         className="brain-nav__toggle"
         onClick={onUnpark}
         aria-expanded={!parked}
+        aria-controls="brain-figure"
         hidden={!parked}
       >
-        Show the brain
+        <span className="visually-hidden">Show the brain</span>
       </button>
     </div>
   );

@@ -14,7 +14,7 @@
 /**
  * An image with its intrinsic dimensions.
  *
- * `width` and `height` are the image's real pixel dimensions. They are
+ * `width` and `height` are the image’s real pixel dimensions. They are
  * rendered as HTML attributes so the browser can reserve the correct space
  * before the file loads — without them the page shifts as images arrive.
  * They do not control the displayed size; CSS does that.
@@ -44,7 +44,7 @@ export interface Project {
   summary: string;
 
   /**
-   * Short list for the card's chips. Keep to 3–5 — more than that wraps
+   * Short list for the card’s chips. Keep to 3–5 — more than that wraps
    * badly at mobile widths. Use `stack` for the full list.
    */
   tech: string[];
@@ -89,13 +89,13 @@ export const projects: Project[] = [
     tech: ["Eleventy", "Nunjucks", "Vite", "Tailwind CSS", "GSAP"],
     thumbnail: {
       src: "/work/cake-com-thumb.jpg",
-      alt: "CAKE.com homepage: the headline 'cake.com productivity suite' over dark blue, framed by floating product interface panels, above a row of customer logos.",
+      alt: "CAKE.com homepage: the headline ‘cake.com productivity suite’ over dark blue, framed by floating product interface panels, above a row of customer logos.",
       ...SHOT,
     },
     problem:
       "CAKE.com needed a brand site covering three separate products — Clockify, Pumble and Plaky — that could carry ambitious motion without paying for it in load time, and that gave the other product properties a shared set of patterns to build from rather than each reinventing its own.",
     role:
-      "I owned the site end to end: stack selection, architecture, implementation and release. I built the entire animation and interaction layer in GSAP, and defined the design system, reusable component patterns and frontend standards that were adopted across the company's web properties. I wrote a custom Eleventy image shortcode that handles responsive sizing and inlines SVG assets as markup for performance — it is async, which broke when called from a synchronous Nunjucks macro, and I resolved that with Nunjucks' setAsync tag. I also added Vite to the Eleventy setup for HMR and asset handling, which Eleventy does not require but which made daily development considerably faster. Page performance scores improved by roughly 20%.",
+      "I owned the site end to end: stack selection, architecture, implementation and release. I built the entire animation and interaction layer in GSAP, and defined the design system, reusable component patterns and frontend standards that were adopted across the company’s web properties. I wrote a custom Eleventy image shortcode that handles responsive sizing and inlines SVG assets as markup for performance — it is async, which broke when called from a synchronous Nunjucks macro, and I resolved that with Nunjucks’ setAsync tag. I also added Vite to the Eleventy setup for HMR and asset handling, which Eleventy does not require but which made daily development considerably faster. Page performance scores improved by roughly 20%.",
     stack: [
       "Eleventy",
       "Nunjucks",
@@ -107,12 +107,12 @@ export const projects: Project[] = [
     images: [
       {
         src: "/work/cake-com-01.png",
-        alt: "The 'Meet our tools' section showing Clockify, with a timekeeping panel listing tracked hours beside a tabbed list of features.",
+        alt: "The ‘Meet our tools’ section showing Clockify, with a timekeeping panel listing tracked hours beside a tabbed list of features.",
         ...SHOT,
       },
       {
         src: "/work/cake-com-03.png",
-        alt: "A dark panel reading 'Organize your entire workflow in one place', above a section explaining how Clockify, Pumble and Plaky combine into one suite.",
+        alt: "A dark panel reading ‘Organize your entire workflow in one place’, above a section explaining how Clockify, Pumble and Plaky combine into one suite.",
         ...SHOT,
       },
     ],
@@ -128,7 +128,7 @@ export const projects: Project[] = [
     tech: ["Next.js", "TypeScript", "Tailwind CSS", "i18next"],
     thumbnail: {
       src: "/work/avers-thumb.jpg",
-      alt: "Avers homepage: the Serbian headline 'Korak ka progresu' set in a high-contrast display serif over a glass office facade at dusk.",
+      alt: "Avers homepage: the Serbian headline ‘Korak ka progresu’ set in a high-contrast display serif over a glass office facade at dusk.",
       ...SHOT,
     },
     problem:
@@ -149,7 +149,7 @@ export const projects: Project[] = [
     images: [
       {
         src: "/work/avers-01.png",
-        alt: "A slate-blue section with the gradient display headline 'Zajedno kreirajmo finansijski uspeh' beside three columns of justified body copy, leading into the services heading.",
+        alt: "A slate-blue section with the gradient display headline ‘Zajedno kreirajmo finansijski uspeh’ beside three columns of justified body copy, leading into the services heading.",
         ...SHOT,
       },
       {
@@ -169,7 +169,7 @@ export const projects: Project[] = [
     tech: ["React", "Vite", "Framer Motion", "SCSS"],
     thumbnail: {
       src: "/work/ntsh-thumb.png",
-      alt: "A black screen with 'NOTHING TO SEE HERE' set large in white across two lines, a blue shape bleeding in from the top-left corner.",
+      alt: "A black screen with ‘NOTHING TO SEE HERE’ set large in white across two lines, a blue shape bleeding in from the top-left corner.",
       ...SHOT,
     },
     problem:
@@ -180,7 +180,7 @@ export const projects: Project[] = [
     images: [
       {
         src: "/work/ntsh-01.png",
-        alt: "Large black type reading 'We embrace the art of the unseen' on white, with the studio description below it mid-way through a fade-in.",
+        alt: "Large black type reading ‘We embrace the art of the unseen’ on white, with the studio description below it mid-way through a fade-in.",
         ...SHOT,
       },
       {
@@ -191,7 +191,7 @@ export const projects: Project[] = [
     ],
     // Hosted on GitHub Pages under /ntsh/. If ntsh.studio is ever revived on
     // HawkHost, point this at the domain instead — the Vite config builds for
-    // either target (see BASE_PATH in that repo's vite.config.js).
+    // either target (see BASE_PATH in that repo’s vite.config.js).
     liveUrl: "https://ibjelica.github.io/ntsh/",
   },
   {
